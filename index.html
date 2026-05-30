@@ -498,8 +498,8 @@ const COL = 'hr_data';
 async function loadFirebase(){
   if(firedb) return true;
   try{
-    if(typeof firebase === 'undefined') return false;
-    if(!firebase.apps || !firebase.apps.length){
+    if(typeof firebase==='undefined'){ console.error('Firebase not loaded'); return false; }
+    if(!firebase.apps.length){
       firebase.initializeApp({
         apiKey:"AIzaSyBE7nW30FDBPm9dynCuztOeFY053qcQiV8",
         authDomain:"kayan-hr-7dc59.firebaseapp.com",
@@ -510,9 +510,10 @@ async function loadFirebase(){
       });
     }
     firedb = firebase.firestore();
+    console.log('Firebase connected ✅');
     return true;
   }catch(e){
-    console.error('Firebase init error:',e);
+    console.error('Firebase error:',e);
     return false;
   }
 }

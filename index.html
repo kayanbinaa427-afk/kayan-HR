@@ -88,8 +88,6 @@ tr:hover td{background:rgba(255,255,255,0.03)}
 .notif{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#f5c842,#e8a800);color:#1a1200;padding:9px 24px;border-radius:30px;font-size:13px;font-weight:700;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
 .notif.show{opacity:1}
 </style>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 <div class="app">
@@ -498,7 +496,21 @@ const COL = 'hr_data';
 async function loadFirebase(){
   if(firedb) return true;
   try{
-    if(typeof firebase==='undefined'){ console.error('Firebase not loaded'); return false; }
+    // Load scripts dynamically
+    await new Promise(function(res,rej){
+      if(typeof firebase!=='undefined'){res();return;}
+      const s=document.createElement('script');
+      s.src='https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js';
+      s.onload=res; s.onerror=rej;
+      document.body.appendChild(s);
+    });
+    await new Promise(function(res,rej){
+      const s=document.createElement('script');
+      s.src='https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js';
+      s.onload=res; s.onerror=rej;
+      document.body.appendChild(s);
+    });
+    if(typeof firebase==='undefined') return false;
     if(!firebase.apps.length){
       firebase.initializeApp({
         apiKey:"AIzaSyBE7nW30FDBPm9dynCuztOeFY053qcQiV8",
@@ -509,8 +521,7 @@ async function loadFirebase(){
         appId:"1:633109063030:web:436de6fc950b794f7bc657"
       });
     }
-    firedb = firebase.firestore();
-    console.log('Firebase connected ✅');
+    firedb=firebase.firestore();
     return true;
   }catch(e){
     console.error('Firebase error:',e);
@@ -723,7 +734,7 @@ function getSal(empId,mn,yr){
   return{e,gross,ded,bon,net:gross-ded+bon};
 }
 
-function renderAll(){renderDash();renderEmp();renderIq();renderDoc();renderSal();renderRep();renderDed();renderBon();renderTraf();renderLv();renderAtt();renderLoans();renderVeh();}
+function renderAll(){renderDash();renderEmp();renderIq();renderDoc();renderSal();renderRep();renderDed();renderBon();renderTraf();renderLv();renderAtt();if(typeof renderLoans==="function")renderLoans();if(typeof renderVeh==="function")renderVeh();}
 
 function renderDash(){
   const warn=db.settings.iqamaWarn||60;
@@ -1069,7 +1080,395 @@ function printRec(empId,m,y){
   }
 }
 
+
+// ── LOANS RENDER ──
+function renderLoans(){
+  if(!db.loans)db.loans=[];
+  const w=document.getElementById('loan-wrap');
+  const sw=document.getElementById('loan-summary');
+  if(!w&&!sw)return;
+  const active=db.loans.filter(l=>l.status==='نشطة');
+  const totActive=active.reduce((a,l)=>a+(l.amount-(l.paid*l.monthlyAmt)),0);
+  if(w){
+    if(!db.loans.length){w.innerHTML='<div class="empty">لا يوجد سلف مسجلة.</div>';}
+    else{
+      let rows='';
+      [...db.loans].reverse().forEach(function(l){
+        const remaining=Math.max(0,l.amount-(l.paid*l.monthlyAmt));
+        const stCls=l.status==='مسددة'?'bs':'bw';
+        rows+='<tr><td><div class="fc"><div class="av">'+av(en(l.empId))+'</div>'+en(l.empId)+'</div></td>';
+        rows+='<td style="color:var(--gold);font-weight:700">'+fmt(l.amount)+'</td>';
+        rows+='<td>'+l.paid+'/'+l.installments+'</td>';
+        rows+='<td style="color:#34d399">'+fmt(l.paid*l.monthlyAmt)+'</td>';
+        rows+='<td style="color:#f87171">'+fmt(remaining)+'</td>';
+        rows+='<td style="font-weight:700">'+fmt(l.monthlyAmt)+'</td>';
+        rows+='<td><span class="badge '+stCls+'">'+l.status+'</span></td>';
+        rows+='<td>'+(l.reason||'—')+'</td>';
+        rows+='<td><div class="fc">';
+        if(l.status==='نشطة')rows+='<button class="btn sm gold" data-lid="'+l.id+'" onclick="payInstallment(this.dataset.lid)">💳 خصم قسط</button>';
+        rows+='<button class="btn sm red" data-col="loans" data-lid="'+l.id+'" onclick="delIt(this.dataset.col,this.dataset.lid)">🗑</button>';
+        rows+='</div></td></tr>';
+      });
+      w.innerHTML='<div style="overflow-x:auto"><table><tr><th>الموظف</th><th>المبلغ</th><th>الأقساط</th><th>المدفوع</th><th>المتبقي</th><th>القسط الشهري</th><th>الحالة</th><th>السبب</th><th></th></tr>'+rows+'</table></div>';
+    }
+  }
+  if(sw){
+    if(active.length){
+      sw.innerHTML='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">'+
+        '<div class="metric"><div class="metric-lbl">سلف نشطة</div><div class="metric-val" style="color:#fbbf24">'+active.length+'</div><div class="metric-sub">موظف</div></div>'+
+        '<div class="metric"><div class="metric-lbl">إجمالي المتبقي</div><div class="metric-val" style="color:#f87171">'+fmt(Math.round(totActive))+'</div><div class="metric-sub">ريال</div></div>'+
+        '<div class="metric"><div class="metric-lbl">أقساط هذا الشهر</div><div class="metric-val" style="color:var(--gold)">'+fmt(active.reduce(function(a,l){return a+l.monthlyAmt;},0))+'</div><div class="metric-sub">ريال</div></div>'+
+        '</div>';
+    } else {
+      sw.innerHTML='<div class="empty">لا يوجد سلف نشطة ✅</div>';
+    }
+  }
+}
+
+function calcLoan(){
+  const amt=parseFloat(document.getElementById('ln-amt')?.value)||0;
+  const inst=parseInt(document.getElementById('ln-inst')?.value)||1;
+  const monthly=Math.ceil(amt/inst);
+  const el=document.getElementById('ln-monthly');
+  if(el)el.value=monthly>0?fmt(monthly)+' ريال':'';
+  const prev=document.getElementById('ln-preview');
+  if(prev&&amt>0){
+    prev.style.display='block';
+    prev.innerHTML='<div style="font-weight:700;color:var(--gold);margin-bottom:6px">ملخص السلفة</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:12px">'+
+      '<span style="color:rgba(255,255,255,.5)">إجمالي السلفة</span><span>'+fmt(amt)+' ريال</span>'+
+      '<span style="color:rgba(255,255,255,.5)">عدد الأقساط</span><span>'+inst+' شهر</span>'+
+      '<span style="color:rgba(255,255,255,.5)">القسط الشهري</span><span style="color:var(--gold);font-weight:700">'+fmt(monthly)+' ريال</span>'+
+      '</div>';
+  } else if(prev){ prev.style.display='none'; }
+}
+
+function saveLoan(){
+  const empId=document.getElementById('ln-emp')?.value;if(!empId){alert('اختر الموظف');return;}
+  const amt=parseFloat(document.getElementById('ln-amt')?.value)||0;if(amt<=0){alert('أدخل مبلغ السلفة');return;}
+  const inst=parseInt(document.getElementById('ln-inst')?.value)||1;
+  const monthly=Math.ceil(amt/inst);
+  if(!db.loans)db.loans=[];
+  db.loans.push({id:uid(),empId,amount:amt,date:document.getElementById('ln-dt')?.value||td(),installments:inst,monthlyAmt:monthly,paid:0,reason:document.getElementById('ln-rsn')?.value||'',status:'نشطة'});
+  save();renderLoans();closeM('m-loan');ntf('✅ تم إضافة السلفة');
+}
+
+function payInstallment(loanId){
+  const loan=db.loans.find(x=>x.id===loanId);if(!loan)return;
+  if(loan.paid>=loan.installments){ntf('السلفة مسددة بالكامل');return;}
+  loan.paid+=1;
+  if(loan.paid>=loan.installments)loan.status='مسددة';
+  const now=new Date();
+  const ds=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  db.deductions.push({id:uid(),empId:loan.empId,type:'قسط سلفة',date:ds,amount:String(loan.monthlyAmt),reason:'قسط سلفة ('+loan.paid+'/'+loan.installments+')'});
+  save();renderLoans();renderDed();renderSal();renderRep();ntf('✅ تم خصم القسط '+loan.paid+'/'+loan.installments);
+}
+
+// ── VEHICLES RENDER ──
+function renderVeh(){
+  if(!db.vehicles)db.vehicles=[];
+  const w=document.getElementById('veh-wrap');
+  const aw=document.getElementById('veh-alerts');
+  const mw=document.getElementById('veh-metrics');
+  if(!w&&!aw&&!mw)return;
+  const warn=db.settings.iqamaWarn||60;
+  const active=db.vehicles.filter(v=>v.status==='نشطة').length;
+  const allExps=[];
+  db.vehicles.forEach(function(v){
+    if(v.licExp)allExps.push({plate:v.plate,type:'رخصة السير',exp:v.licExp,empId:v.empId});
+    if(v.inspExp)allExps.push({plate:v.plate,type:'الفحص الدوري',exp:v.inspExp,empId:v.empId});
+    if(v.insExp)allExps.push({plate:v.plate,type:'التأمين',exp:v.insExp,empId:v.empId});
+    if(v.regExp)allExps.push({plate:v.plate,type:'الاستمارة',exp:v.regExp,empId:v.empId});
+  });
+  const alerts=allExps.filter(function(x){const d=dd(x.exp);return d!==null&&d<warn;});
+  if(mw){
+    const vehTraffic={};
+    db.traffic.forEach(function(t){if(t.plate)vehTraffic[t.plate]=(vehTraffic[t.plate]||0)+1;});
+    const mostFined=Object.entries(vehTraffic).sort((a,b)=>b[1]-a[1])[0];
+    mw.innerHTML='<div class="metric"><div class="metric-lbl">إجمالي السيارات</div><div class="metric-val">'+db.vehicles.length+'</div><div class="metric-sub">'+active+' نشطة</div></div>'+
+      '<div class="metric"><div class="metric-lbl">تنبيهات وثائق</div><div class="metric-val" style="color:#fbbf24">'+alerts.length+'</div><div class="metric-sub">تحتاج تجديد</div></div>'+
+      '<div class="metric"><div class="metric-lbl">إجمالي المخالفات</div><div class="metric-val" style="color:#f87171">'+db.traffic.length+'</div><div class="metric-sub">مخالفة</div></div>'+
+      '<div class="metric"><div class="metric-lbl">الأكثر مخالفات</div><div class="metric-val" style="font-size:13px;color:var(--gold)">'+(mostFined?mostFined[0]:'—')+'</div><div class="metric-sub">'+(mostFined?mostFined[1]+' مخالفة':'')+'</div></div>';
+  }
+  if(aw){
+    if(!alerts.length){aw.innerHTML='<div class="empty">✅ لا توجد تنبيهات</div>';}
+    else{aw.innerHTML=alerts.map(function(a){const d=dd(a.exp);const exp=d<0;return'<div class="alrt '+(exp?'d':'w')+'">'+(exp?'🔴':'🟡')+' لوحة '+a.plate+' — '+a.type+' '+(exp?'منتهية منذ '+Math.abs(d)+' يوم':'تنتهي بعد '+d+' يوم')+(a.empId?' — '+en(a.empId):'')+' </div>';}).join('');}
+  }
+  if(!w)return;
+  if(!db.vehicles.length){w.innerHTML='<div class="empty">لا يوجد سيارات مسجلة.</div>';return;}
+  let rows='';
+  db.vehicles.forEach(function(v){
+    const vTraffic=db.traffic.filter(t=>t.plate===v.plate);
+    const totalFines=vTraffic.reduce(function(a,t){return a+(+t.amount||0);},0);
+    function docStatus(dateStr){
+      if(!dateStr)return'<span style="color:rgba(255,255,255,.3);font-size:10px">—</span>';
+      const d=dd(dateStr);
+      if(d<0)return'<span class="badge bd" style="font-size:10px">منتهية</span>';
+      if(d<warn)return'<span class="badge bw" style="font-size:10px">'+d+' يوم</span>';
+      return'<span class="badge bs" style="font-size:10px">'+d+' يوم</span>';
+    }
+    const stCls=v.status==='نشطة'?'bs':v.status==='في الصيانة'?'bw':'bd';
+    rows+='<tr><td style="font-weight:700;color:var(--gold)">'+v.plate+'</td>';
+    rows+='<td>'+((v.type||'')+(v.model?' '+v.model:''))+'</td>';
+    rows+='<td>'+(v.color||'—')+'</td>';
+    rows+='<td>'+(v.empId?'<div class="fc"><div class="av">'+av(en(v.empId))+'</div>'+en(v.empId)+'</div>':'<span style="color:rgba(255,255,255,.3)">غير مخصصة</span>')+'</td>';
+    rows+='<td>'+docStatus(v.licExp)+'</td>';
+    rows+='<td>'+docStatus(v.inspExp)+'</td>';
+    rows+='<td>'+docStatus(v.insExp)+'</td>';
+    rows+='<td>'+docStatus(v.regExp)+'</td>';
+    rows+='<td><span class="badge '+stCls+'">'+v.status+'</span></td>';
+    rows+='<td style="color:#f87171">'+vTraffic.length+' ('+fmt(totalFines)+')</td>';
+    rows+='<td><div class="fc"><button class="btn sm blu" data-vid="'+v.id+'" onclick="showVehTraffic(this.dataset.vid)">مخالفاتها</button>';
+    rows+='<button class="btn sm" data-vid="'+v.id+'" onclick="editVeh(this.dataset.vid)">✏️</button>';
+    rows+='<button class="btn sm red" data-vid="'+v.id+'" onclick="delVeh(this.dataset.vid)">🗑</button></div></td></tr>';
+  });
+  w.innerHTML='<div style="overflow-x:auto"><table style="min-width:900px"><tr><th>رقم اللوحة</th><th>النوع والموديل</th><th>اللون</th><th>المسؤول</th><th>رخصة السير</th><th>الفحص الدوري</th><th>التأمين</th><th>الاستمارة</th><th>الحالة</th><th>المخالفات</th><th></th></tr>'+rows+'</table></div>';
+}
+
+function saveVeh(){
+  const id=document.getElementById('veh-id')?.value||uid();
+  const obj={id,plate:document.getElementById('veh-plate')?.value||'',type:document.getElementById('veh-type')?.value||'',model:document.getElementById('veh-model')?.value||'',color:document.getElementById('veh-color')?.value||'',chassis:document.getElementById('veh-chassis')?.value||'',empId:document.getElementById('veh-emp')?.value||'',licExp:getDateVal('veh-lic-exp'),inspExp:getDateVal('veh-insp-exp'),insExp:getDateVal('veh-ins-exp'),regExp:getDateVal('veh-reg-exp'),status:document.getElementById('veh-stat')?.value||'نشطة',note:document.getElementById('veh-note')?.value||''};
+  if(!obj.plate.trim()){alert('أدخل رقم اللوحة');return;}
+  if(!db.vehicles)db.vehicles=[];
+  const idx=db.vehicles.findIndex(x=>x.id===id);
+  if(idx>=0)db.vehicles[idx]=obj;else db.vehicles.push(obj);
+  save();renderVeh();closeM('m-veh');ntf('✅ تم حفظ بيانات السيارة');
+  const eid=document.getElementById('veh-id');if(eid)eid.value='';
+}
+
+function editVeh(id){
+  const v=db.vehicles.find(x=>x.id===id);if(!v)return;
+  const eid=document.getElementById('veh-id');if(eid)eid.value=v.id;
+  openM('m-veh');
+  setTimeout(function(){
+    ['veh-plate','veh-type','veh-model','veh-color','veh-chassis','veh-note'].forEach(function(k){const el=document.getElementById(k);if(el)el.value=v[k.replace('veh-','')]||'';});
+    const empEl=document.getElementById('veh-emp');if(empEl)empEl.value=v.empId||'';
+    const statEl=document.getElementById('veh-stat');if(statEl)statEl.value=v.status||'نشطة';
+    setDateVal('veh-lic-exp',v.licExp||'');setDateVal('veh-insp-exp',v.inspExp||'');
+    setDateVal('veh-ins-exp',v.insExp||'');setDateVal('veh-reg-exp',v.regExp||'');
+  },50);
+}
+
+function delVeh(id){if(!confirm('حذف هذه السيارة؟'))return;db.vehicles=db.vehicles.filter(x=>x.id!==id);save();renderVeh();ntf('تم الحذف');}
+
+function closeVehTraf(){const m=document.getElementById('veh-traf-modal');if(m)m.remove();}
+
+function showVehTraffic(id){
+  const v=db.vehicles.find(x=>x.id===id);if(!v)return;
+  const vTraffic=db.traffic.filter(t=>t.plate===v.plate);
+  const total=vTraffic.reduce(function(a,t){return a+(+t.amount||0);},0);
+  const modal=document.createElement('div');
+  modal.id='veh-traf-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);z-index:300;display:flex;align-items:center;justify-content:center;padding:1rem';
+  let rows=vTraffic.length?'<div style="overflow-x:auto"><table><tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>التحمل</th><th>الموظف</th></tr>'+
+    vTraffic.map(function(t){return'<tr><td>'+fmtDate(t.date)+'</td><td>'+t.type+'</td><td style="color:#f87171;font-weight:700">'+fmt(t.amount)+'</td><td>'+(t.resp==='full'?'على الموظف':t.resp==='half'?'مشتركة':'على الشركة')+'</td><td>'+en(t.empId)+'</td></tr>';}).join('')+
+    '</table></div><div style="padding:10px 0;font-size:13px;font-weight:700;color:#f87171;border-top:1px solid rgba(255,255,255,.1);margin-top:8px">الإجمالي: '+fmt(total)+' ريال</div>':
+    '<div class="empty">✅ لا توجد مخالفات</div>';
+  modal.innerHTML='<div style="background:rgba(10,5,30,0.98);border:1px solid rgba(255,255,255,.15);border-radius:18px;width:600px;max-width:95vw;overflow:hidden">'+
+    '<div style="background:rgba(245,200,66,0.1);padding:1rem 1.25rem;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:center">'+
+    '<span style="font-size:14px;font-weight:700;color:var(--gold)">🚗 مخالفات لوحة '+v.plate+'</span>'+
+    '<button class="btn sm red" onclick="closeVehTraf()">✕</button></div>'+
+    '<div style="padding:1rem">'+rows+'</div>'+
+    '<div style="padding:.85rem 1.25rem;border-top:1px solid rgba(255,255,255,.07);text-align:left">'+
+    '<button class="btn" onclick="closeVehTraf()">إغلاق</button></div></div>';
+  document.body.appendChild(modal);
+}
+
 // Init
+
+// ── LOANS RENDER ──
+function renderLoans(){
+  if(!db.loans)db.loans=[];
+  const w=document.getElementById('loan-wrap');
+  const sw=document.getElementById('loan-summary');
+  if(!w&&!sw)return;
+  const active=db.loans.filter(l=>l.status==='نشطة');
+  const totActive=active.reduce((a,l)=>a+(l.amount-(l.paid*l.monthlyAmt)),0);
+  if(w){
+    if(!db.loans.length){w.innerHTML='<div class="empty">لا يوجد سلف مسجلة.</div>';}
+    else{
+      let rows='';
+      [...db.loans].reverse().forEach(function(l){
+        const remaining=Math.max(0,l.amount-(l.paid*l.monthlyAmt));
+        const stCls=l.status==='مسددة'?'bs':'bw';
+        rows+='<tr><td><div class="fc"><div class="av">'+av(en(l.empId))+'</div>'+en(l.empId)+'</div></td>';
+        rows+='<td style="color:var(--gold);font-weight:700">'+fmt(l.amount)+'</td>';
+        rows+='<td>'+l.paid+'/'+l.installments+'</td>';
+        rows+='<td style="color:#34d399">'+fmt(l.paid*l.monthlyAmt)+'</td>';
+        rows+='<td style="color:#f87171">'+fmt(remaining)+'</td>';
+        rows+='<td style="font-weight:700">'+fmt(l.monthlyAmt)+'</td>';
+        rows+='<td><span class="badge '+stCls+'">'+l.status+'</span></td>';
+        rows+='<td>'+(l.reason||'—')+'</td>';
+        rows+='<td><div class="fc">';
+        if(l.status==='نشطة')rows+='<button class="btn sm gold" data-lid="'+l.id+'" onclick="payInstallment(this.dataset.lid)">💳 خصم قسط</button>';
+        rows+='<button class="btn sm red" data-col="loans" data-lid="'+l.id+'" onclick="delIt(this.dataset.col,this.dataset.lid)">🗑</button>';
+        rows+='</div></td></tr>';
+      });
+      w.innerHTML='<div style="overflow-x:auto"><table><tr><th>الموظف</th><th>المبلغ</th><th>الأقساط</th><th>المدفوع</th><th>المتبقي</th><th>القسط الشهري</th><th>الحالة</th><th>السبب</th><th></th></tr>'+rows+'</table></div>';
+    }
+  }
+  if(sw){
+    if(active.length){
+      sw.innerHTML='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">'+
+        '<div class="metric"><div class="metric-lbl">سلف نشطة</div><div class="metric-val" style="color:#fbbf24">'+active.length+'</div><div class="metric-sub">موظف</div></div>'+
+        '<div class="metric"><div class="metric-lbl">إجمالي المتبقي</div><div class="metric-val" style="color:#f87171">'+fmt(Math.round(totActive))+'</div><div class="metric-sub">ريال</div></div>'+
+        '<div class="metric"><div class="metric-lbl">أقساط هذا الشهر</div><div class="metric-val" style="color:var(--gold)">'+fmt(active.reduce(function(a,l){return a+l.monthlyAmt;},0))+'</div><div class="metric-sub">ريال</div></div>'+
+        '</div>';
+    } else {
+      sw.innerHTML='<div class="empty">لا يوجد سلف نشطة ✅</div>';
+    }
+  }
+}
+
+function calcLoan(){
+  const amt=parseFloat(document.getElementById('ln-amt')?.value)||0;
+  const inst=parseInt(document.getElementById('ln-inst')?.value)||1;
+  const monthly=Math.ceil(amt/inst);
+  const el=document.getElementById('ln-monthly');
+  if(el)el.value=monthly>0?fmt(monthly)+' ريال':'';
+  const prev=document.getElementById('ln-preview');
+  if(prev&&amt>0){
+    prev.style.display='block';
+    prev.innerHTML='<div style="font-weight:700;color:var(--gold);margin-bottom:6px">ملخص السلفة</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:12px">'+
+      '<span style="color:rgba(255,255,255,.5)">إجمالي السلفة</span><span>'+fmt(amt)+' ريال</span>'+
+      '<span style="color:rgba(255,255,255,.5)">عدد الأقساط</span><span>'+inst+' شهر</span>'+
+      '<span style="color:rgba(255,255,255,.5)">القسط الشهري</span><span style="color:var(--gold);font-weight:700">'+fmt(monthly)+' ريال</span>'+
+      '</div>';
+  } else if(prev){ prev.style.display='none'; }
+}
+
+function saveLoan(){
+  const empId=document.getElementById('ln-emp')?.value;if(!empId){alert('اختر الموظف');return;}
+  const amt=parseFloat(document.getElementById('ln-amt')?.value)||0;if(amt<=0){alert('أدخل مبلغ السلفة');return;}
+  const inst=parseInt(document.getElementById('ln-inst')?.value)||1;
+  const monthly=Math.ceil(amt/inst);
+  if(!db.loans)db.loans=[];
+  db.loans.push({id:uid(),empId,amount:amt,date:document.getElementById('ln-dt')?.value||td(),installments:inst,monthlyAmt:monthly,paid:0,reason:document.getElementById('ln-rsn')?.value||'',status:'نشطة'});
+  save();renderLoans();closeM('m-loan');ntf('✅ تم إضافة السلفة');
+}
+
+function payInstallment(loanId){
+  const loan=db.loans.find(x=>x.id===loanId);if(!loan)return;
+  if(loan.paid>=loan.installments){ntf('السلفة مسددة بالكامل');return;}
+  loan.paid+=1;
+  if(loan.paid>=loan.installments)loan.status='مسددة';
+  const now=new Date();
+  const ds=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  db.deductions.push({id:uid(),empId:loan.empId,type:'قسط سلفة',date:ds,amount:String(loan.monthlyAmt),reason:'قسط سلفة ('+loan.paid+'/'+loan.installments+')'});
+  save();renderLoans();renderDed();renderSal();renderRep();ntf('✅ تم خصم القسط '+loan.paid+'/'+loan.installments);
+}
+
+// ── VEHICLES RENDER ──
+function renderVeh(){
+  if(!db.vehicles)db.vehicles=[];
+  const w=document.getElementById('veh-wrap');
+  const aw=document.getElementById('veh-alerts');
+  const mw=document.getElementById('veh-metrics');
+  if(!w&&!aw&&!mw)return;
+  const warn=db.settings.iqamaWarn||60;
+  const active=db.vehicles.filter(v=>v.status==='نشطة').length;
+  const allExps=[];
+  db.vehicles.forEach(function(v){
+    if(v.licExp)allExps.push({plate:v.plate,type:'رخصة السير',exp:v.licExp,empId:v.empId});
+    if(v.inspExp)allExps.push({plate:v.plate,type:'الفحص الدوري',exp:v.inspExp,empId:v.empId});
+    if(v.insExp)allExps.push({plate:v.plate,type:'التأمين',exp:v.insExp,empId:v.empId});
+    if(v.regExp)allExps.push({plate:v.plate,type:'الاستمارة',exp:v.regExp,empId:v.empId});
+  });
+  const alerts=allExps.filter(function(x){const d=dd(x.exp);return d!==null&&d<warn;});
+  if(mw){
+    const vehTraffic={};
+    db.traffic.forEach(function(t){if(t.plate)vehTraffic[t.plate]=(vehTraffic[t.plate]||0)+1;});
+    const mostFined=Object.entries(vehTraffic).sort((a,b)=>b[1]-a[1])[0];
+    mw.innerHTML='<div class="metric"><div class="metric-lbl">إجمالي السيارات</div><div class="metric-val">'+db.vehicles.length+'</div><div class="metric-sub">'+active+' نشطة</div></div>'+
+      '<div class="metric"><div class="metric-lbl">تنبيهات وثائق</div><div class="metric-val" style="color:#fbbf24">'+alerts.length+'</div><div class="metric-sub">تحتاج تجديد</div></div>'+
+      '<div class="metric"><div class="metric-lbl">إجمالي المخالفات</div><div class="metric-val" style="color:#f87171">'+db.traffic.length+'</div><div class="metric-sub">مخالفة</div></div>'+
+      '<div class="metric"><div class="metric-lbl">الأكثر مخالفات</div><div class="metric-val" style="font-size:13px;color:var(--gold)">'+(mostFined?mostFined[0]:'—')+'</div><div class="metric-sub">'+(mostFined?mostFined[1]+' مخالفة':'')+'</div></div>';
+  }
+  if(aw){
+    if(!alerts.length){aw.innerHTML='<div class="empty">✅ لا توجد تنبيهات</div>';}
+    else{aw.innerHTML=alerts.map(function(a){const d=dd(a.exp);const exp=d<0;return'<div class="alrt '+(exp?'d':'w')+'">'+(exp?'🔴':'🟡')+' لوحة '+a.plate+' — '+a.type+' '+(exp?'منتهية منذ '+Math.abs(d)+' يوم':'تنتهي بعد '+d+' يوم')+(a.empId?' — '+en(a.empId):'')+' </div>';}).join('');}
+  }
+  if(!w)return;
+  if(!db.vehicles.length){w.innerHTML='<div class="empty">لا يوجد سيارات مسجلة.</div>';return;}
+  let rows='';
+  db.vehicles.forEach(function(v){
+    const vTraffic=db.traffic.filter(t=>t.plate===v.plate);
+    const totalFines=vTraffic.reduce(function(a,t){return a+(+t.amount||0);},0);
+    function docStatus(dateStr){
+      if(!dateStr)return'<span style="color:rgba(255,255,255,.3);font-size:10px">—</span>';
+      const d=dd(dateStr);
+      if(d<0)return'<span class="badge bd" style="font-size:10px">منتهية</span>';
+      if(d<warn)return'<span class="badge bw" style="font-size:10px">'+d+' يوم</span>';
+      return'<span class="badge bs" style="font-size:10px">'+d+' يوم</span>';
+    }
+    const stCls=v.status==='نشطة'?'bs':v.status==='في الصيانة'?'bw':'bd';
+    rows+='<tr><td style="font-weight:700;color:var(--gold)">'+v.plate+'</td>';
+    rows+='<td>'+((v.type||'')+(v.model?' '+v.model:''))+'</td>';
+    rows+='<td>'+(v.color||'—')+'</td>';
+    rows+='<td>'+(v.empId?'<div class="fc"><div class="av">'+av(en(v.empId))+'</div>'+en(v.empId)+'</div>':'<span style="color:rgba(255,255,255,.3)">غير مخصصة</span>')+'</td>';
+    rows+='<td>'+docStatus(v.licExp)+'</td>';
+    rows+='<td>'+docStatus(v.inspExp)+'</td>';
+    rows+='<td>'+docStatus(v.insExp)+'</td>';
+    rows+='<td>'+docStatus(v.regExp)+'</td>';
+    rows+='<td><span class="badge '+stCls+'">'+v.status+'</span></td>';
+    rows+='<td style="color:#f87171">'+vTraffic.length+' ('+fmt(totalFines)+')</td>';
+    rows+='<td><div class="fc"><button class="btn sm blu" data-vid="'+v.id+'" onclick="showVehTraffic(this.dataset.vid)">مخالفاتها</button>';
+    rows+='<button class="btn sm" data-vid="'+v.id+'" onclick="editVeh(this.dataset.vid)">✏️</button>';
+    rows+='<button class="btn sm red" data-vid="'+v.id+'" onclick="delVeh(this.dataset.vid)">🗑</button></div></td></tr>';
+  });
+  w.innerHTML='<div style="overflow-x:auto"><table style="min-width:900px"><tr><th>رقم اللوحة</th><th>النوع والموديل</th><th>اللون</th><th>المسؤول</th><th>رخصة السير</th><th>الفحص الدوري</th><th>التأمين</th><th>الاستمارة</th><th>الحالة</th><th>المخالفات</th><th></th></tr>'+rows+'</table></div>';
+}
+
+function saveVeh(){
+  const id=document.getElementById('veh-id')?.value||uid();
+  const obj={id,plate:document.getElementById('veh-plate')?.value||'',type:document.getElementById('veh-type')?.value||'',model:document.getElementById('veh-model')?.value||'',color:document.getElementById('veh-color')?.value||'',chassis:document.getElementById('veh-chassis')?.value||'',empId:document.getElementById('veh-emp')?.value||'',licExp:getDateVal('veh-lic-exp'),inspExp:getDateVal('veh-insp-exp'),insExp:getDateVal('veh-ins-exp'),regExp:getDateVal('veh-reg-exp'),status:document.getElementById('veh-stat')?.value||'نشطة',note:document.getElementById('veh-note')?.value||''};
+  if(!obj.plate.trim()){alert('أدخل رقم اللوحة');return;}
+  if(!db.vehicles)db.vehicles=[];
+  const idx=db.vehicles.findIndex(x=>x.id===id);
+  if(idx>=0)db.vehicles[idx]=obj;else db.vehicles.push(obj);
+  save();renderVeh();closeM('m-veh');ntf('✅ تم حفظ بيانات السيارة');
+  const eid=document.getElementById('veh-id');if(eid)eid.value='';
+}
+
+function editVeh(id){
+  const v=db.vehicles.find(x=>x.id===id);if(!v)return;
+  const eid=document.getElementById('veh-id');if(eid)eid.value=v.id;
+  openM('m-veh');
+  setTimeout(function(){
+    ['veh-plate','veh-type','veh-model','veh-color','veh-chassis','veh-note'].forEach(function(k){const el=document.getElementById(k);if(el)el.value=v[k.replace('veh-','')]||'';});
+    const empEl=document.getElementById('veh-emp');if(empEl)empEl.value=v.empId||'';
+    const statEl=document.getElementById('veh-stat');if(statEl)statEl.value=v.status||'نشطة';
+    setDateVal('veh-lic-exp',v.licExp||'');setDateVal('veh-insp-exp',v.inspExp||'');
+    setDateVal('veh-ins-exp',v.insExp||'');setDateVal('veh-reg-exp',v.regExp||'');
+  },50);
+}
+
+function delVeh(id){if(!confirm('حذف هذه السيارة؟'))return;db.vehicles=db.vehicles.filter(x=>x.id!==id);save();renderVeh();ntf('تم الحذف');}
+
+function closeVehTraf(){const m=document.getElementById('veh-traf-modal');if(m)m.remove();}
+
+function showVehTraffic(id){
+  const v=db.vehicles.find(x=>x.id===id);if(!v)return;
+  const vTraffic=db.traffic.filter(t=>t.plate===v.plate);
+  const total=vTraffic.reduce(function(a,t){return a+(+t.amount||0);},0);
+  const modal=document.createElement('div');
+  modal.id='veh-traf-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);z-index:300;display:flex;align-items:center;justify-content:center;padding:1rem';
+  let rows=vTraffic.length?'<div style="overflow-x:auto"><table><tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>التحمل</th><th>الموظف</th></tr>'+
+    vTraffic.map(function(t){return'<tr><td>'+fmtDate(t.date)+'</td><td>'+t.type+'</td><td style="color:#f87171;font-weight:700">'+fmt(t.amount)+'</td><td>'+(t.resp==='full'?'على الموظف':t.resp==='half'?'مشتركة':'على الشركة')+'</td><td>'+en(t.empId)+'</td></tr>';}).join('')+
+    '</table></div><div style="padding:10px 0;font-size:13px;font-weight:700;color:#f87171;border-top:1px solid rgba(255,255,255,.1);margin-top:8px">الإجمالي: '+fmt(total)+' ريال</div>':
+    '<div class="empty">✅ لا توجد مخالفات</div>';
+  modal.innerHTML='<div style="background:rgba(10,5,30,0.98);border:1px solid rgba(255,255,255,.15);border-radius:18px;width:600px;max-width:95vw;overflow:hidden">'+
+    '<div style="background:rgba(245,200,66,0.1);padding:1rem 1.25rem;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:center">'+
+    '<span style="font-size:14px;font-weight:700;color:var(--gold)">🚗 مخالفات لوحة '+v.plate+'</span>'+
+    '<button class="btn sm red" onclick="closeVehTraf()">✕</button></div>'+
+    '<div style="padding:1rem">'+rows+'</div>'+
+    '<div style="padding:.85rem 1.25rem;border-top:1px solid rgba(255,255,255,.07);text-align:left">'+
+    '<button class="btn" onclick="closeVehTraf()">إغلاق</button></div></div>';
+  document.body.appendChild(modal);
+}
+
 // Init
 document.getElementById('datelbl').textContent=new Date().toLocaleDateString('ar-SA',{day:'numeric',month:'long',year:'numeric'});
 document.getElementById('sm').value=new Date().getMonth();

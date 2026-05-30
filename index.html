@@ -1081,6 +1081,497 @@ function printRec(empId,m,y){
 }
 
 
+
+// ── AI & BACKUP FUNCTIONS ──
+function closeAiIq(){const m=document.getElementById('ai-iq-modal');if(m)m.remove();}
+function closeAiIns(){const m=document.getElementById('ai-ins-modal');if(m)m.remove();}
+function closeAttModal(){const m=document.getElementById('att-ai-modal');if(m)m.remove();}
+function getApiKey(){
+  return localStorage.getItem('hr_api_key')||'';
+}
+
+function fileToBase64(file){
+  return new Promise(function(resolve,reject){
+    const reader=new FileReader();
+    reader.onload=function(e){resolve(e.target.result.split(',')[1]);};
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function isPDF(file){
+  return file.type==='application/pdf'||file.name.toLowerCase().endsWith('.pdf');
+}
+
+async function callClaudeWithFile(file,prompt){
+  const apiKey=getApiKey();
+  if(!apiKey){ntf('❌ أدخل API Key في الإعدادات أولاً');throw new Error('No API Key');}
+  const b64=await fileToBase64(file);
+  const pdf=isPDF(file);
+  const userContent=pdf?[
+    {type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},
+    {type:'text',text:prompt}
+  ]:[
+    {type:'image',source:{type:'base64',media_type:file.type||'image/jpeg',data:b64}},
+    {type:'text',text:prompt}
+  ];
+  const headers={'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'};
+  if(pdf)headers['anthropic-beta']='pdfs-2024-09-25';
+  const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers,body:JSON.stringify({model:'claude-opus-4-5',max_tokens:1024,messages:[{role:'user',content:userContent}]})});
+  if(!resp.ok){const e=await resp.json();throw new Error(e.error?.message||'API Error');}
+  const d=await resp.json();
+  return d.content[0].text;
+}
+
+function parseJSON(text){
+  try{const m=text.match(/\{[\s\S]*\}/);if(m)return JSON.parse(m[0]);}catch(e){}
+  return null;
+}
+
+// ── AI SCAN IQAMA ──
+async function aiScanIqama(input){
+  const file=input.files[0];if(!file)return;input.value='';
+  ntf('🤖 جاري قراءة الإقامة...');
+  try{
+    const prompt=`اقرأ هذه الإقامة السعودية واستخرج البيانات. أرجع JSON فقط:
+{"name":"الاسم بالعربي","name_en":"الاسم بالإنجليزي","idno":"رقم الهوية","nat":"الجنسية","dob":"تاريخ الميلاد YYYY-MM-DD","issue_date":"تاريخ الإصدار YYYY-MM-DD","expiry_date":"تاريخ الانتهاء YYYY-MM-DD","job":"المهنة","iqama_no":"رقم الإقامة"}`;
+    const result=await callClaudeWithFile(file,prompt);
+    const data=parseJSON(result);
+    if(!data){ntf('❌ لم يتمكن AI من قراءة الملف');return;}
+    showAiIqamaModal(data,file);
+  }catch(e){ntf('❌ خطأ: '+e.message);}
+}
+
+function showAiIqamaModal(data,file){
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    const src=ev.target.result;
+    const empsOpts='<option value="_new">➕ إضافة موظف جديد</option>'+db.employees.map(e=>'<option value="'+e.id+'">'+e.name+'</option>').join('');
+    const st='padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r);background:rgba(255,255,255,.07);color:#fff;font-family:Cairo,sans-serif;width:100%';
+    const modal=document.createElement('div');
+    modal.id='ai-iq-modal';
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto';
+    modal.innerHTML='<div style="background:rgba(10,5,30,0.98);border:1px solid rgba(245,200,66,0.3);border-radius:18px;width:750px;max-width:95vw;overflow:hidden;margin:auto">'+
+      '<div style="background:rgba(245,200,66,0.1);padding:1rem 1.25rem;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:center">'+
+      '<span style="font-size:14px;font-weight:700;color:var(--gold)">🤖 نتيجة قراءة الإقامة</span>'+
+      '<button class="btn sm red" onclick="closeAiIq()">✕</button></div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0">'+
+      '<div style="padding:1rem;border-left:1px solid rgba(255,255,255,.07)"><img src="'+src+'" style="width:100%;border-radius:8px;max-height:300px;object-fit:contain;background:rgba(0,0,0,.3)"/></div>'+
+      '<div style="padding:1rem;display:flex;flex-direction:column;gap:8px;overflow-y:auto;max-height:70vh">'+
+      '<div style="padding:8px;background:rgba(52,211,153,0.1);border-radius:8px;font-size:11px;color:#34d399">✅ راجع البيانات وعدّل إن احتجت</div>'+
+      '<div class="fg"><label>الموظف</label><select id="aiq-emp" style="'+st+'">'+empsOpts+'</select></div>'+
+      '<div id="aiq-new" style="display:none;flex-direction:column;gap:7px;padding:9px;background:rgba(245,200,66,0.05);border:1px solid rgba(245,200,66,0.15);border-radius:8px">'+
+      '<div style="font-size:11px;color:var(--gold);font-weight:700">بيانات الموظف الجديد</div>'+
+      '<input id="aiq-name" value="'+(data.name||'')+'" placeholder="الاسم *" style="'+st+'">'+
+      '<input id="aiq-nat" value="'+(data.nat||'')+'" placeholder="الجنسية" style="'+st+'">'+
+      '<input id="aiq-job" value="'+(data.job||'')+'" placeholder="المهنة" style="'+st+'">'+
+      '<input id="aiq-idno" value="'+(data.idno||'')+'" placeholder="رقم الهوية" style="'+st+'"></div>'+
+      '<div class="fg"><label>رقم الإقامة</label><input id="aiq-iqno" value="'+(data.iqama_no||data.idno||'')+'" style="'+st+'"></div>'+
+      '<div class="fg"><label>تاريخ الإصدار</label><input id="aiq-iss" type="date" value="'+(data.issue_date||'')+'" style="'+st+'"></div>'+
+      '<div class="fg"><label>تاريخ الانتهاء</label><input id="aiq-exp" type="date" value="'+(data.expiry_date||'')+'" style="'+st+'"></div>'+
+      '</div></div>'+
+      '<div style="padding:.85rem 1.25rem;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid rgba(255,255,255,.07)">'+
+      '<button class="btn" onclick="closeAiIq()">إلغاء</button>'+
+      '<button class="btn gold" onclick="saveAiIqama()">✓ حفظ</button></div></div>';
+    document.body.appendChild(modal);
+    document.getElementById('aiq-emp').addEventListener('change',function(){
+      document.getElementById('aiq-new').style.display=this.value==='_new'?'flex':'none';
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+function saveAiIqama(){
+  const sel=document.getElementById('aiq-emp').value;
+  let empId=sel;
+  if(sel==='_new'){
+    const name=document.getElementById('aiq-name').value;
+    if(!name.trim()){alert('أدخل اسم الموظف');return;}
+    const ne={id:uid(),name,nat:document.getElementById('aiq-nat').value,idno:document.getElementById('aiq-idno').value,title:document.getElementById('aiq-job').value,salary:'0',housing:'0',transport:'0',pay:'cash',status:'نشط',hire:td()};
+    db.employees.push(ne);empId=ne.id;
+  }
+  if(!empId){alert('اختر موظفاً');return;}
+  const idno=document.getElementById('aiq-idno')?.value;
+  if(idno){const e=db.employees.find(x=>x.id===empId);if(e&&!e.idno)e.idno=idno;}
+  db.iqama.push({id:uid(),empId,no:document.getElementById('aiq-iqno').value,issue:document.getElementById('aiq-iss').value,expiry:document.getElementById('aiq-exp').value,cost:'',notes:'قُرئت بالذكاء الاصطناعي'});
+  save();renderAll();document.getElementById('ai-iq-modal').remove();ntf('✅ تم حفظ الإقامة!');
+}
+
+// ── AI SCAN INSURANCE ──
+async function aiScanInsurance(input){
+  const file=input.files[0];if(!file)return;input.value='';
+  ntf('🤖 جاري قراءة ملف التأمينات...');
+  try{
+    const prompt=`اقرأ هذا المستند واستخرج بيانات الموظف. أرجع JSON فقط:
+{"name":"الاسم بالعربي","idno":"رقم الهوية","insurance_no":"رقم التأمينات","nat":"الجنسية","job":"المهنة","salary":"الراتب رقم فقط","hire_date":"تاريخ التعيين YYYY-MM-DD"}`;
+    const result=await callClaudeWithFile(file,prompt);
+    const data=parseJSON(result);
+    if(!data){ntf('❌ لم يتمكن AI من قراءة الملف');return;}
+    showAiInsuranceModal(data,file);
+  }catch(e){ntf('❌ خطأ: '+e.message);}
+}
+
+function showAiInsuranceModal(data,file){
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    const src=ev.target.result;
+    const isImg=file.type.startsWith('image');
+    const st='padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r);background:rgba(255,255,255,.07);color:#fff;font-family:Cairo,sans-serif;width:100%';
+    const modal=document.createElement('div');
+    modal.id='ai-ins-modal';
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto';
+    modal.innerHTML='<div style="background:rgba(10,5,30,0.98);border:1px solid rgba(245,200,66,0.3);border-radius:18px;width:700px;max-width:95vw;overflow:hidden;margin:auto">'+
+      '<div style="background:rgba(245,200,66,0.1);padding:1rem 1.25rem;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:center">'+
+      '<span style="font-size:14px;font-weight:700;color:var(--gold)">🤖 بيانات الموظف من AI</span>'+
+      '<button class="btn sm red" onclick="closeAiIns()">✕</button></div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0">'+
+      '<div style="padding:1rem;border-left:1px solid rgba(255,255,255,.07)">'+(isImg?'<img src="'+src+'" style="width:100%;border-radius:8px;max-height:300px;object-fit:contain"/>':'<div style="padding:2rem;text-align:center;color:rgba(255,255,255,.4)">📄 '+file.name+'</div>')+'</div>'+
+      '<div style="padding:1rem;display:flex;flex-direction:column;gap:8px;overflow-y:auto;max-height:70vh">'+
+      '<div style="padding:8px;background:rgba(52,211,153,0.1);border-radius:8px;font-size:11px;color:#34d399">✅ راجع وعدّل إن احتجت</div>'+
+      '<input id="ains-name" value="'+(data.name||'')+'" placeholder="الاسم *" style="'+st+'">'+
+      '<input id="ains-idno" value="'+(data.idno||'')+'" placeholder="رقم الهوية" style="'+st+'">'+
+      '<input id="ains-ins" value="'+(data.insurance_no||'')+'" placeholder="رقم التأمينات" style="'+st+'">'+
+      '<input id="ains-nat" value="'+(data.nat||'')+'" placeholder="الجنسية" style="'+st+'">'+
+      '<input id="ains-job" value="'+(data.job||'')+'" placeholder="المهنة" style="'+st+'">'+
+      '<input id="ains-sal" value="'+(data.salary||'0')+'" type="number" placeholder="الراتب" style="'+st+'">'+
+      '<input id="ains-hire" value="'+(data.hire_date||'')+'" type="date" style="'+st+'">'+
+      '</div></div>'+
+      '<div style="padding:.85rem 1.25rem;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid rgba(255,255,255,.07)">'+
+      '<button class="btn" onclick="closeAiIns()">إلغاء</button>'+
+      '<button class="btn gold" onclick="saveAiInsurance()">✓ إضافة الموظف</button></div></div>';
+    document.body.appendChild(modal);
+  };
+  reader.readAsDataURL(file);
+}
+
+function saveAiInsurance(){
+  const name=document.getElementById('ains-name').value;
+  if(!name.trim()){alert('أدخل اسم الموظف');return;}
+  db.employees.push({id:uid(),name,idno:document.getElementById('ains-idno').value,insurance:document.getElementById('ains-ins').value,nat:document.getElementById('ains-nat').value,title:document.getElementById('ains-job').value,salary:document.getElementById('ains-sal').value,housing:'0',transport:'0',pay:'cash',status:'نشط',hire:document.getElementById('ains-hire').value||td()});
+  save();renderAll();document.getElementById('ai-ins-modal').remove();ntf('✅ تم إضافة الموظف!');
+}
+
+// ── AI SCAN DOCUMENT ──
+async function aiScanDoc(input){
+  const file=input.files[0];if(!file)return;input.value='';
+  ntf('🤖 جاري تحليل الوثيقة...');
+  try{
+    const prompt=`حلل هذه الوثيقة. أرجع JSON فقط:
+{"name":"اسم الوثيقة","type":"رسمي أو تراخيص أو مالي أو تأمين أو عقود أو أخرى","issue_date":"تاريخ الإصدار YYYY-MM-DD","expiry_date":"تاريخ الانتهاء YYYY-MM-DD","notes":"ملاحظات"}`;
+    const result=await callClaudeWithFile(file,prompt);
+    const data=parseJSON(result);
+    if(!data){ntf('❌ لم يتمكن AI من قراءة الوثيقة');return;}
+    const reader2=new FileReader();
+    reader2.onload=function(ev2){
+      db.documents.push({id:uid(),name:data.name||file.name,type:data.type||'أخرى',upload:td(),expiry:data.expiry_date||'',notes:(data.notes||'')+'— قُرئت بالذكاء الاصطناعي',fileData:ev2.target.result,fileName:file.name,fileType:file.type});
+      save();renderDoc();ntf('✅ تم رفع وتحليل الوثيقة!');
+    };
+    reader2.readAsDataURL(file);
+  }catch(e){ntf('❌ خطأ: '+e.message);}
+}
+
+// ── AI SCAN VEHICLE ──
+async function aiScanVehicle(input){
+  const file=input.files[0];if(!file)return;input.value='';
+  ntf('🤖 جاري قراءة الرخصة...');
+  try{
+    const plateList=db.vehicles.map(v=>v.plate+(v.empId?' — '+en(v.empId):'')).join(' | ');
+    const prompt=`اقرأ رخصة السيارة أو الاستمارة. سيارات الشركة: ${plateList}. أرجع JSON فقط:
+{"plate":"رقم اللوحة","type":"نوع السيارة","model":"الموديل","color":"اللون","chassis":"رقم الشاسيه","lic_exp":"انتهاء رخصة السير YYYY-MM-DD","insp_exp":"انتهاء الفحص YYYY-MM-DD","ins_exp":"انتهاء التأمين YYYY-MM-DD","reg_exp":"انتهاء الاستمارة YYYY-MM-DD","owner":"اسم المالك"}`;
+    const result=await callClaudeWithFile(file,prompt);
+    const data=parseJSON(result);
+    if(!data){ntf('❌ لم يتمكن AI من قراءة الوثيقة');return;}
+    showAiVehicleModal(data,file);
+  }catch(e){ntf('❌ خطأ: '+e.message);}
+}
+
+function showAiVehicleModal(data,file){
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    const src=ev.target.result;
+    let autoEmpId='';
+    if(data.owner){const found=db.employees.find(e=>e.name.includes(data.owner.split(' ')[0])||data.owner.includes(e.name.split(' ')[0]));if(found)autoEmpId=found.id;}
+    const empsOpts='<option value="">— غير مخصصة —</option>'+db.employees.filter(e=>e.status!=='منتهي').map(e=>'<option value="'+e.id+'"'+(e.id===autoEmpId?' selected':'')+'>'+e.name+'</option>').join('');
+    const st='padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r);background:rgba(255,255,255,.07);color:#fff;font-family:Cairo,sans-serif;width:100%';
+    const modal=document.createElement('div');
+    modal.id='ai-veh-modal';
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto';
+    modal.innerHTML='<div style="background:rgba(10,5,30,0.98);border:1px solid rgba(245,200,66,0.3);border-radius:18px;width:800px;max-width:95vw;overflow:hidden;margin:auto">'+
+      '<div style="background:rgba(245,200,66,0.1);padding:1rem 1.25rem;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:center">'+
+      '<span style="font-size:14px;font-weight:700;color:var(--gold)">🤖 نتيجة قراءة الرخصة</span>'+
+      '<button class="btn sm red" onclick="closeAiVeh()">✕</button></div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0">'+
+      '<div style="padding:1rem;border-left:1px solid rgba(255,255,255,.07)"><img src="'+src+'" style="width:100%;border-radius:8px;max-height:340px;object-fit:contain;background:rgba(0,0,0,.3)"/>'+
+      (data.owner?'<div style="margin-top:8px;padding:8px;background:rgba(245,200,66,0.08);border-radius:8px;font-size:11px;color:var(--gold)">👤 المالك: '+data.owner+'</div>':'')+'</div>'+
+      '<div style="padding:1rem;display:flex;flex-direction:column;gap:9px;overflow-y:auto;max-height:75vh">'+
+      '<div class="fg"><label>رقم اللوحة *</label><input id="aveh-plate" value="'+(data.plate||'')+'" style="'+st.replace('rgba(255,255,255,.07)','rgba(245,200,66,0.05)')+'"></div>'+
+      '<div class="fg"><label>نوع السيارة</label><input id="aveh-type" value="'+(data.type||'')+'" style="'+st+'"></div>'+
+      '<div class="fg"><label>الموديل</label><input id="aveh-model" value="'+(data.model||'')+'" style="'+st+'"></div>'+
+      '<div class="fg"><label>اللون</label><input id="aveh-color" value="'+(data.color||'')+'" style="'+st+'"></div>'+
+      '<div class="fg"><label>رقم الشاسيه</label><input id="aveh-chassis" value="'+(data.chassis||'')+'" style="'+st+'"></div>'+
+      '<div class="fg"><label>الموظف المسؤول</label><select id="aveh-emp" style="'+st+'">'+empsOpts+'</select></div>'+
+      '<div class="fg"><label>انتهاء رخصة السير</label><input id="aveh-lic" type="date" value="'+(data.lic_exp||'')+'" style="'+st+'"></div>'+
+      '<div class="fg"><label>انتهاء الفحص الدوري</label><input id="aveh-insp" type="date" value="'+(data.insp_exp||'')+'" style="'+st+'"></div>'+
+      '<div class="fg"><label>انتهاء التأمين</label><input id="aveh-ins" type="date" value="'+(data.ins_exp||'')+'" style="'+st+'"></div>'+
+      '<div class="fg"><label>انتهاء الاستمارة</label><input id="aveh-reg" type="date" value="'+(data.reg_exp||'')+'" style="'+st+'"></div>'+
+      '</div></div>'+
+      '<div style="padding:.85rem 1.5rem;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid rgba(255,255,255,.07)">'+
+      '<button class="btn" onclick="closeAiVeh()">إلغاء</button>'+
+      '<button class="btn gold" onclick="saveAiVehicle()">✓ حفظ السيارة</button></div></div>';
+    document.body.appendChild(modal);
+  };
+  reader.readAsDataURL(file);
+}
+
+function closeAiVeh(){const m=document.getElementById('ai-veh-modal');if(m)m.remove();}
+
+function saveAiVehicle(){
+  const plate=document.getElementById('aveh-plate').value;
+  if(!plate.trim()){alert('أدخل رقم اللوحة');return;}
+  if(!db.vehicles)db.vehicles=[];
+  db.vehicles.push({id:uid(),plate,type:document.getElementById('aveh-type').value,model:document.getElementById('aveh-model').value,color:document.getElementById('aveh-color').value,chassis:document.getElementById('aveh-chassis').value,empId:document.getElementById('aveh-emp').value,licExp:document.getElementById('aveh-lic').value,inspExp:document.getElementById('aveh-insp').value,insExp:document.getElementById('aveh-ins').value,regExp:document.getElementById('aveh-reg').value,status:'نشطة',note:'قُرئت بالذكاء الاصطناعي'});
+  save();renderVeh();closeAiVeh();ntf('✅ تم إضافة السيارة!');
+}
+
+// ── AI ANALYZE ATTENDANCE ──
+async function aiAnalyzeAttendance(input){
+  const file=input.files[0];if(!file)return;input.value='';
+  const apiKey=getApiKey();
+  if(!apiKey){ntf('❌ أدخل API Key في الإعدادات أولاً');return;}
+  ntf('🤖 جاري تحليل كشف الحضور...');
+  try{
+    const empList=db.employees.filter(e=>e.status==='نشط').map(e=>e.name+' (راتب: '+((+e.salary||0)+(+e.housing||0)+(+e.transport||0))+' ريال)').join(' | ');
+    const prompt=`أنت محلل رواتب. لديك كشف حضور موظفين.
+قائمة موظفي الشركة: ${empList}
+- العمود الأيمن: اسم الموظف
+- العمود الأخضر الوسط: عدد أيام الحضور (مثل "1 يوم")
+- افترض إجمالي أيام العمل = 26 يوم
+أرجع JSON فقط:
+{"month":"مايو","year":2026,"work_days":26,"employees":[{"name":"اسم الموظف","present_days":25,"absent_days":1,"late_minutes":0,"notes":""}]}`;
+    const result=await callClaudeWithFile(file,prompt);
+    const data=parseJSON(result);
+    if(!data||!data.employees){ntf('❌ لم يتمكن AI من قراءة الكشف');return;}
+    showAttendanceModal(data,file);
+  }catch(e){ntf('❌ خطأ: '+e.message);}
+}
+
+function importAttendance(input){
+  aiAnalyzeAttendance(input);
+}
+
+// ── AI SCAN TRAFFIC ──
+async function aiScanTraffic(input){
+  const file=input.files[0];if(!file)return;input.value='';
+  const apiKey=getApiKey();
+  if(!apiKey){ntf('❌ أدخل API Key في الإعدادات أولاً');return;}
+  ntf('🤖 جاري قراءة المخالفة المرورية...');
+  try{
+    const plateList=db.vehicles.map(v=>v.plate+(v.empId?' — '+en(v.empId):'')).join(' | ');
+    const empList=db.employees.filter(e=>e.status!=='منتهي').map(e=>e.name).join(' | ');
+    const prompt=`اقرأ هذه المخالفة المرورية. سيارات الشركة: ${plateList}. الموظفون: ${empList}.
+أرجع JSON فقط:
+{"plate":"رقم اللوحة","violation_type":"نوع المخالفة","amount":"المبلغ رقم فقط","fine":"الغرامة رقم فقط أو 0","total":"الإجمالي رقم فقط","date":"التاريخ YYYY-MM-DD","location":"المكان","violation_no":"رقم المخالفة","matched_plate":"اللوحة المطابقة أو null","matched_employee":"الموظف المطابق أو null","speed":"السرعة أو null","speed_limit":"الحد المسموح أو null"}`;
+    const result=await callClaudeWithFile(file,prompt);
+    const data=parseJSON(result);
+    if(!data){ntf('❌ لم يتمكن AI من قراءة المخالفة');return;}
+    showAiTrafficModal(data,file);
+  }catch(e){ntf('❌ خطأ: '+e.message);}
+}
+
+function showAiTrafficModal(data,file){
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    const src=ev.target.result;
+    const isImg=file.type.startsWith('image');
+    let matchedVeh=db.vehicles.find(v=>v.plate===(data.matched_plate||data.plate));
+    let matchedEmpId=matchedVeh?.empId||'';
+    if(!matchedEmpId&&data.matched_employee){const emp=db.employees.find(e=>e.name===data.matched_employee);if(emp)matchedEmpId=emp.id;}
+    const empsOpts='<option value="">— اختر موظفاً —</option>'+db.employees.filter(e=>e.status!=='منتهي').map(e=>'<option value="'+e.id+'"'+(e.id===matchedEmpId?' selected':'')+'>'+e.name+'</option>').join('');
+    const platesOpts='<option value="">— اختر لوحة —</option>'+db.vehicles.map(v=>'<option value="'+v.plate+'"'+(v.plate===(data.matched_plate||data.plate)?' selected':'')+'>'+v.plate+(v.type?' — '+v.type:'')+'</option>').join('')+'<option value="_other">أخرى</option>';
+    const totalAmt=data.total||data.amount||0;
+    const st='padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r);background:rgba(255,255,255,.07);color:#fff;font-family:Cairo,sans-serif;width:100%';
+    const modal=document.createElement('div');
+    modal.id='ai-traf-modal';
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto';
+    modal.innerHTML='<div style="background:rgba(10,5,30,0.98);border:1px solid rgba(245,200,66,0.3);border-radius:18px;width:820px;max-width:95vw;overflow:hidden;margin:auto">'+
+      '<div style="background:rgba(245,200,66,0.1);padding:1rem 1.5rem;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:center">'+
+      '<span style="font-size:14px;font-weight:700;color:var(--gold)">🚗 بيانات المخالفة من AI</span>'+
+      '<button class="btn sm red" onclick="closeAiTraf()">✕</button></div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0">'+
+      '<div style="padding:1rem;border-left:1px solid rgba(255,255,255,.07);">'+(isImg?'<img src="'+src+'" style="width:100%;border-radius:8px;max-height:350px;object-fit:contain"/>':'<div style="padding:2rem;text-align:center;color:rgba(255,255,255,.4)">📄 '+file.name+'</div>')+
+      (data.speed?'<div style="margin-top:10px;padding:10px;background:rgba(248,113,113,0.15);border-radius:8px;text-align:center"><div style="font-size:11px;color:rgba(255,255,255,.5)">السرعة</div><div style="font-size:28px;font-weight:800;color:#f87171">'+data.speed+' كم/س</div>'+(data.speed_limit?'<div style="font-size:11px;color:rgba(255,255,255,.4)">الحد: '+data.speed_limit+'</div>':'')+'</div>':'')+
+      (data.location?'<div style="margin-top:8px;padding:8px;background:rgba(255,255,255,.04);border-radius:8px;font-size:11px;color:rgba(255,255,255,.5)">📍 '+data.location+'</div>':'')+'</div>'+
+      '<div style="padding:1rem;display:flex;flex-direction:column;gap:9px;overflow-y:auto;max-height:75vh">'+
+      '<div style="padding:8px;background:rgba(52,211,153,0.1);border-radius:8px;font-size:11px;color:#34d399">✅ راجع البيانات</div>'+
+      '<div class="fg"><label>رقم اللوحة</label><select id="atraf-plate" style="'+st+'">'+platesOpts+'</select></div>'+
+      '<div class="fg"><label>الموظف المسؤول</label><select id="atraf-emp" style="'+st+'">'+empsOpts+'</select></div>'+
+      '<div class="fg"><label>نوع المخالفة</label><select id="atraf-type" style="'+st+'">'+['تجاوز السرعة','قطع إشارة','وقوف خاطئ','استخدام الجوال','أخرى'].map(t=>'<option'+(data.violation_type&&data.violation_type.includes(t)?' selected':'')+'>'+t+'</option>').join('')+'</select></div>'+
+      '<div class="fg"><label>التاريخ</label><input id="atraf-date" type="date" value="'+(data.date||'')+'" style="'+st+'"></div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+      '<div class="fg"><label>مبلغ المخالفة</label><input id="atraf-amount" type="number" value="'+(data.amount||0)+'" style="'+st+'" oninput="calcTrafTotal()"></div>'+
+      '<div class="fg"><label>الغرامة الإضافية</label><input id="atraf-fine" type="number" value="'+(data.fine||0)+'" style="'+st+'" oninput="calcTrafTotal()"></div></div>'+
+      '<div style="padding:10px;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.2);border-radius:8px">'+
+      '<div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:3px">الإجمالي</div>'+
+      '<div id="atraf-total-disp" style="font-size:22px;font-weight:800;color:#f87171">'+Number(totalAmt).toLocaleString('en-US')+' ريال</div></div>'+
+      '<div class="fg"><label>التحمل</label><select id="atraf-resp" style="'+st+'"><option value="full">على الموظف كاملاً</option><option value="half">مشتركة 50/50</option><option value="co">على الشركة</option></select></div>'+
+      '</div></div>'+
+      '<div style="padding:.85rem 1.5rem;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid rgba(255,255,255,.07)">'+
+      '<button class="btn" onclick="closeAiTraf()">إلغاء</button>'+
+      '<button class="btn gold" onclick="saveAiTraffic()">✓ حفظ وتطبيق الخصم</button></div></div>';
+    document.body.appendChild(modal);
+    document.getElementById('atraf-plate').addEventListener('change',function(){
+      const v=db.vehicles.find(vv=>vv.plate===this.value);
+      if(v&&v.empId)document.getElementById('atraf-emp').value=v.empId;
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+function calcTrafTotal(){
+  const amt=parseFloat(document.getElementById('atraf-amount')?.value)||0;
+  const fine=parseFloat(document.getElementById('atraf-fine')?.value)||0;
+  const disp=document.getElementById('atraf-total-disp');
+  if(disp)disp.textContent=(amt+fine).toLocaleString('en-US')+' ريال';
+}
+
+function closeAiTraf(){const m=document.getElementById('ai-traf-modal');if(m)m.remove();}
+
+function saveAiTraffic(){
+  const plateSel=document.getElementById('atraf-plate');
+  let plate=plateSel?plateSel.value:'';
+  if(plate==='_other'){plate=prompt('أدخل رقم اللوحة:')||'';}
+  if(!plate){alert('أدخل رقم اللوحة');return;}
+  const empId=document.getElementById('atraf-emp')?.value||'';
+  const type=document.getElementById('atraf-type')?.value||'أخرى';
+  const date=document.getElementById('atraf-date')?.value||td();
+  const amount=parseFloat(document.getElementById('atraf-amount')?.value)||0;
+  const fine=parseFloat(document.getElementById('atraf-fine')?.value)||0;
+  const total=amount+fine;
+  const resp=document.getElementById('atraf-resp')?.value||'full';
+  db.traffic.push({id:uid(),empId,plate,type,date,amount:String(total),resp,notes:'قُرئت بالذكاء الاصطناعي'+(fine>0?' (غرامة: '+fine+')':'')});
+  let empDed=resp==='full'?total:resp==='half'?Math.round(total/2):0;
+  save();renderAll();closeAiTraf();
+  ntf('✅ تم حفظ المخالفة'+(empDed>0?' — سيُخصم '+empDed.toLocaleString('en-US')+' من الراتب':''));
+}
+
+// ── BACKUP / RESTORE ──
+function exportData(){
+  const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='kayan-hr-backup-'+new Date().toLocaleDateString('ar-SA').replace(/\//g,'-')+'.json';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);ntf('✅ تم تصدير النسخة الاحتياطية!');
+}
+
+function importData(input){
+  const file=input.files[0];if(!file)return;input.value='';
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const imported=JSON.parse(e.target.result);
+      if(!imported.employees){alert('الملف غير صالح');return;}
+      if(!confirm('استعادة البيانات ستستبدل البيانات الحالية. هل أنت متأكد؟'))return;
+      db=imported;
+      if(!db.loans)db.loans=[];
+      if(!db.vehicles)db.vehicles=[];
+      save();renderAll();ntf('✅ تم استعادة البيانات! '+db.employees.length+' موظف');
+    }catch(ex){alert('خطأ: '+ex.message);}
+  };
+  reader.readAsText(file);
+}
+
+// ── SHOW ATTENDANCE MODAL ──
+function showAttendanceModal(data,file){
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    const src=ev.target.result;
+    const isImg=file.type.startsWith('image');
+    const mn=parseInt(document.getElementById('sm').value);
+    const yr=parseInt(document.getElementById('sy').value);
+    const workDays=data.work_days||26;
+    const activeEmps=db.employees.filter(e=>e.status==='نشط');
+    let rows='',totalDed=0;
+    const matched=[];
+    data.employees.forEach(function(rec){
+      let emp=activeEmps.find(e=>e.name===rec.name);
+      if(!emp)emp=activeEmps.find(e=>e.name.includes(rec.name.split(' ')[0])||rec.name.includes(e.name.split(' ')[0]));
+      const gross=emp?(+emp.salary||0)+(+emp.housing||0)+(+emp.transport||0):0;
+      const dailyRate=gross/workDays;
+      const absentDed=Math.round(dailyRate*(rec.absent_days||0));
+      const lateDed=Math.round(((rec.late_minutes||0)/60)*(db.settings.lateRate||50));
+      const net=gross-absentDed-lateDed;
+      totalDed+=absentDed+lateDed;
+      matched.push({emp,rec,gross,absentDed,lateDed,net});
+      const empName=emp?emp.name:rec.name+' ⚠️';
+      rows+='<tr><td style="font-weight:600">'+empName+'</td>';
+      rows+='<td style="color:#34d399;text-align:center">'+(rec.present_days||0)+'</td>';
+      rows+='<td style="color:#f87171;text-align:center">'+(rec.absent_days||0)+'</td>';
+      rows+='<td style="text-align:center">'+(rec.late_minutes||0)+' دق</td>';
+      rows+='<td>'+fmt(gross)+'</td>';
+      rows+='<td style="color:#f87171">'+(absentDed>0?'- '+fmt(absentDed):'—')+'</td>';
+      rows+='<td style="color:#f87171">'+(lateDed>0?'- '+fmt(lateDed):'—')+'</td>';
+      rows+='<td style="color:var(--gold);font-weight:700">'+fmt(net)+'</td>';
+      rows+='<td style="color:rgba(255,255,255,.4);font-size:11px">'+(rec.notes||'')+'</td></tr>';
+    });
+    window._attMatched=matched;window._attMonth=mn;window._attYear=yr;window._attWorkDays=workDays;
+    const modal=document.createElement('div');
+    modal.id='att-ai-modal';
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto';
+    modal.innerHTML='<div style="background:rgba(10,5,30,0.98);border:1px solid rgba(245,200,66,0.3);border-radius:18px;width:1100px;max-width:98vw;overflow:hidden;margin:auto">'+
+      '<div style="background:rgba(245,200,66,0.1);padding:1rem 1.5rem;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:center">'+
+      '<span style="font-size:14px;font-weight:700;color:var(--gold)">🤖 تحليل كشف الحضور — '+(data.month||'—')+' '+(data.year||yr)+'</span>'+
+      '<button class="btn sm red" onclick="closeAttModal()">✕</button></div>'+
+      '<div style="display:grid;grid-template-columns:280px 1fr;gap:0;max-height:75vh">'+
+      '<div style="padding:1rem;border-left:1px solid rgba(255,255,255,.07);overflow-y:auto">'+(isImg?'<img src="'+src+'" style="width:100%;border-radius:8px"/>':'<div style="padding:2rem;text-align:center;color:rgba(255,255,255,.4)">📄 '+file.name+'</div>')+
+      '<div style="margin-top:12px;padding:10px;background:rgba(255,255,255,.04);border-radius:8px;font-size:12px">'+
+      '<div style="color:rgba(255,255,255,.5);margin-bottom:5px">معلومات</div>'+
+      '<div>الشهر: <span style="color:var(--gold)">'+(data.month||'—')+'</span></div>'+
+      '<div>أيام العمل: <span style="color:var(--gold)">'+workDays+'</span></div>'+
+      '<div>الموظفين: <span style="color:var(--gold)">'+data.employees.length+'</span></div></div></div>'+
+      '<div style="overflow:auto;max-height:75vh"><table style="width:100%;border-collapse:collapse;font-size:12px">'+
+      '<thead style="position:sticky;top:0;background:rgba(10,5,30,0.98)"><tr>'+
+      '<th style="text-align:right;padding:10px;border-bottom:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5)">الموظف</th>'+
+      '<th style="text-align:center;padding:10px;border-bottom:1px solid rgba(255,255,255,.1);color:#34d399">أيام الحضور</th>'+
+      '<th style="text-align:center;padding:10px;border-bottom:1px solid rgba(255,255,255,.1);color:#f87171">أيام الغياب</th>'+
+      '<th style="text-align:center;padding:10px;border-bottom:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5)">تأخير</th>'+
+      '<th style="text-align:right;padding:10px;border-bottom:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5)">الإجمالي</th>'+
+      '<th style="text-align:right;padding:10px;border-bottom:1px solid rgba(255,255,255,.1);color:#f87171">خصم غياب</th>'+
+      '<th style="text-align:right;padding:10px;border-bottom:1px solid rgba(255,255,255,.1);color:#f87171">خصم تأخير</th>'+
+      '<th style="text-align:right;padding:10px;border-bottom:1px solid rgba(255,255,255,.1);color:var(--gold)">الصافي</th>'+
+      '<th style="text-align:right;padding:10px;border-bottom:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.3)">ملاحظات</th>'+
+      '</tr></thead><tbody>'+rows+'</tbody></table></div></div>'+
+      '<div style="padding:1rem 1.5rem;border-top:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:space-between">'+
+      '<div style="font-size:13px">إجمالي الخصومات: <span style="color:#f87171;font-weight:700">'+fmt(totalDed)+' ريال</span></div>'+
+      '<div style="display:flex;gap:8px">'+
+      '<button class="btn" onclick="closeAttModal()">إلغاء</button>'+
+      '<button class="btn gold" onclick="doApplyAll()">✓ تطبيق الخصومات على جميع الموظفين</button></div></div></div>';
+    document.body.appendChild(modal);
+  };
+  reader.readAsDataURL(file);
+}
+
+function doApplyAll(){applyAttendance(window._attMatched,window._attMonth,window._attYear);}
+
+function applyAttendance(matched,mn,yr){
+  const workDays=window._attWorkDays||26;
+  const lateRate=db.settings.lateRate||50;
+  const m=window._attMatched||matched;
+  m.forEach(function(item){
+    if(!item.emp)return;
+    const ds=yr+'-'+String(mn+1).padStart(2,'0')+'-15';
+    const gross=(+item.emp.salary||0)+(+item.emp.housing||0)+(+item.emp.transport||0);
+    const absentDed=Math.round((gross/workDays)*(item.rec.absent_days||0));
+    const lateDed=Math.round(((item.rec.late_minutes||0)/60)*lateRate);
+    if(absentDed>0)db.deductions.push({id:uid(),empId:item.emp.id,type:'غياب',date:ds,amount:String(absentDed),reason:'غياب '+(item.rec.absent_days)+' يوم — '+MN[mn]+' '+yr});
+    if(lateDed>0)db.attendance.push({id:uid(),empId:item.emp.id,date:ds,time:'',mins:String(item.rec.late_minutes||0),action:'خصم مطبق',deduct:String(lateDed)});
+  });
+  save();renderAll();
+  document.getElementById('att-ai-modal').remove();
+  ntf('✅ تم تطبيق بيانات الحضور على '+m.filter(x=>x.emp).length+' موظف');
+}
+
+// Backup buttons in settings
 // ── LOANS RENDER ──
 function renderLoans(){
   if(!db.loans)db.loans=[];
@@ -1276,6 +1767,497 @@ function showVehTraffic(id){
 
 // Init
 
+
+// ── AI & BACKUP FUNCTIONS ──
+function closeAiIq(){const m=document.getElementById('ai-iq-modal');if(m)m.remove();}
+function closeAiIns(){const m=document.getElementById('ai-ins-modal');if(m)m.remove();}
+function closeAttModal(){const m=document.getElementById('att-ai-modal');if(m)m.remove();}
+function getApiKey(){
+  return localStorage.getItem('hr_api_key')||'';
+}
+
+function fileToBase64(file){
+  return new Promise(function(resolve,reject){
+    const reader=new FileReader();
+    reader.onload=function(e){resolve(e.target.result.split(',')[1]);};
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function isPDF(file){
+  return file.type==='application/pdf'||file.name.toLowerCase().endsWith('.pdf');
+}
+
+async function callClaudeWithFile(file,prompt){
+  const apiKey=getApiKey();
+  if(!apiKey){ntf('❌ أدخل API Key في الإعدادات أولاً');throw new Error('No API Key');}
+  const b64=await fileToBase64(file);
+  const pdf=isPDF(file);
+  const userContent=pdf?[
+    {type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},
+    {type:'text',text:prompt}
+  ]:[
+    {type:'image',source:{type:'base64',media_type:file.type||'image/jpeg',data:b64}},
+    {type:'text',text:prompt}
+  ];
+  const headers={'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'};
+  if(pdf)headers['anthropic-beta']='pdfs-2024-09-25';
+  const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers,body:JSON.stringify({model:'claude-opus-4-5',max_tokens:1024,messages:[{role:'user',content:userContent}]})});
+  if(!resp.ok){const e=await resp.json();throw new Error(e.error?.message||'API Error');}
+  const d=await resp.json();
+  return d.content[0].text;
+}
+
+function parseJSON(text){
+  try{const m=text.match(/\{[\s\S]*\}/);if(m)return JSON.parse(m[0]);}catch(e){}
+  return null;
+}
+
+// ── AI SCAN IQAMA ──
+async function aiScanIqama(input){
+  const file=input.files[0];if(!file)return;input.value='';
+  ntf('🤖 جاري قراءة الإقامة...');
+  try{
+    const prompt=`اقرأ هذه الإقامة السعودية واستخرج البيانات. أرجع JSON فقط:
+{"name":"الاسم بالعربي","name_en":"الاسم بالإنجليزي","idno":"رقم الهوية","nat":"الجنسية","dob":"تاريخ الميلاد YYYY-MM-DD","issue_date":"تاريخ الإصدار YYYY-MM-DD","expiry_date":"تاريخ الانتهاء YYYY-MM-DD","job":"المهنة","iqama_no":"رقم الإقامة"}`;
+    const result=await callClaudeWithFile(file,prompt);
+    const data=parseJSON(result);
+    if(!data){ntf('❌ لم يتمكن AI من قراءة الملف');return;}
+    showAiIqamaModal(data,file);
+  }catch(e){ntf('❌ خطأ: '+e.message);}
+}
+
+function showAiIqamaModal(data,file){
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    const src=ev.target.result;
+    const empsOpts='<option value="_new">➕ إضافة موظف جديد</option>'+db.employees.map(e=>'<option value="'+e.id+'">'+e.name+'</option>').join('');
+    const st='padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r);background:rgba(255,255,255,.07);color:#fff;font-family:Cairo,sans-serif;width:100%';
+    const modal=document.createElement('div');
+    modal.id='ai-iq-modal';
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto';
+    modal.innerHTML='<div style="background:rgba(10,5,30,0.98);border:1px solid rgba(245,200,66,0.3);border-radius:18px;width:750px;max-width:95vw;overflow:hidden;margin:auto">'+
+      '<div style="background:rgba(245,200,66,0.1);padding:1rem 1.25rem;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:center">'+
+      '<span style="font-size:14px;font-weight:700;color:var(--gold)">🤖 نتيجة قراءة الإقامة</span>'+
+      '<button class="btn sm red" onclick="closeAiIq()">✕</button></div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0">'+
+      '<div style="padding:1rem;border-left:1px solid rgba(255,255,255,.07)"><img src="'+src+'" style="width:100%;border-radius:8px;max-height:300px;object-fit:contain;background:rgba(0,0,0,.3)"/></div>'+
+      '<div style="padding:1rem;display:flex;flex-direction:column;gap:8px;overflow-y:auto;max-height:70vh">'+
+      '<div style="padding:8px;background:rgba(52,211,153,0.1);border-radius:8px;font-size:11px;color:#34d399">✅ راجع البيانات وعدّل إن احتجت</div>'+
+      '<div class="fg"><label>الموظف</label><select id="aiq-emp" style="'+st+'">'+empsOpts+'</select></div>'+
+      '<div id="aiq-new" style="display:none;flex-direction:column;gap:7px;padding:9px;background:rgba(245,200,66,0.05);border:1px solid rgba(245,200,66,0.15);border-radius:8px">'+
+      '<div style="font-size:11px;color:var(--gold);font-weight:700">بيانات الموظف الجديد</div>'+
+      '<input id="aiq-name" value="'+(data.name||'')+'" placeholder="الاسم *" style="'+st+'">'+
+      '<input id="aiq-nat" value="'+(data.nat||'')+'" placeholder="الجنسية" style="'+st+'">'+
+      '<input id="aiq-job" value="'+(data.job||'')+'" placeholder="المهنة" style="'+st+'">'+
+      '<input id="aiq-idno" value="'+(data.idno||'')+'" placeholder="رقم الهوية" style="'+st+'"></div>'+
+      '<div class="fg"><label>رقم الإقامة</label><input id="aiq-iqno" value="'+(data.iqama_no||data.idno||'')+'" style="'+st+'"></div>'+
+      '<div class="fg"><label>تاريخ الإصدار</label><input id="aiq-iss" type="date" value="'+(data.issue_date||'')+'" style="'+st+'"></div>'+
+      '<div class="fg"><label>تاريخ الانتهاء</label><input id="aiq-exp" type="date" value="'+(data.expiry_date||'')+'" style="'+st+'"></div>'+
+      '</div></div>'+
+      '<div style="padding:.85rem 1.25rem;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid rgba(255,255,255,.07)">'+
+      '<button class="btn" onclick="closeAiIq()">إلغاء</button>'+
+      '<button class="btn gold" onclick="saveAiIqama()">✓ حفظ</button></div></div>';
+    document.body.appendChild(modal);
+    document.getElementById('aiq-emp').addEventListener('change',function(){
+      document.getElementById('aiq-new').style.display=this.value==='_new'?'flex':'none';
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+function saveAiIqama(){
+  const sel=document.getElementById('aiq-emp').value;
+  let empId=sel;
+  if(sel==='_new'){
+    const name=document.getElementById('aiq-name').value;
+    if(!name.trim()){alert('أدخل اسم الموظف');return;}
+    const ne={id:uid(),name,nat:document.getElementById('aiq-nat').value,idno:document.getElementById('aiq-idno').value,title:document.getElementById('aiq-job').value,salary:'0',housing:'0',transport:'0',pay:'cash',status:'نشط',hire:td()};
+    db.employees.push(ne);empId=ne.id;
+  }
+  if(!empId){alert('اختر موظفاً');return;}
+  const idno=document.getElementById('aiq-idno')?.value;
+  if(idno){const e=db.employees.find(x=>x.id===empId);if(e&&!e.idno)e.idno=idno;}
+  db.iqama.push({id:uid(),empId,no:document.getElementById('aiq-iqno').value,issue:document.getElementById('aiq-iss').value,expiry:document.getElementById('aiq-exp').value,cost:'',notes:'قُرئت بالذكاء الاصطناعي'});
+  save();renderAll();document.getElementById('ai-iq-modal').remove();ntf('✅ تم حفظ الإقامة!');
+}
+
+// ── AI SCAN INSURANCE ──
+async function aiScanInsurance(input){
+  const file=input.files[0];if(!file)return;input.value='';
+  ntf('🤖 جاري قراءة ملف التأمينات...');
+  try{
+    const prompt=`اقرأ هذا المستند واستخرج بيانات الموظف. أرجع JSON فقط:
+{"name":"الاسم بالعربي","idno":"رقم الهوية","insurance_no":"رقم التأمينات","nat":"الجنسية","job":"المهنة","salary":"الراتب رقم فقط","hire_date":"تاريخ التعيين YYYY-MM-DD"}`;
+    const result=await callClaudeWithFile(file,prompt);
+    const data=parseJSON(result);
+    if(!data){ntf('❌ لم يتمكن AI من قراءة الملف');return;}
+    showAiInsuranceModal(data,file);
+  }catch(e){ntf('❌ خطأ: '+e.message);}
+}
+
+function showAiInsuranceModal(data,file){
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    const src=ev.target.result;
+    const isImg=file.type.startsWith('image');
+    const st='padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r);background:rgba(255,255,255,.07);color:#fff;font-family:Cairo,sans-serif;width:100%';
+    const modal=document.createElement('div');
+    modal.id='ai-ins-modal';
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto';
+    modal.innerHTML='<div style="background:rgba(10,5,30,0.98);border:1px solid rgba(245,200,66,0.3);border-radius:18px;width:700px;max-width:95vw;overflow:hidden;margin:auto">'+
+      '<div style="background:rgba(245,200,66,0.1);padding:1rem 1.25rem;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:center">'+
+      '<span style="font-size:14px;font-weight:700;color:var(--gold)">🤖 بيانات الموظف من AI</span>'+
+      '<button class="btn sm red" onclick="closeAiIns()">✕</button></div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0">'+
+      '<div style="padding:1rem;border-left:1px solid rgba(255,255,255,.07)">'+(isImg?'<img src="'+src+'" style="width:100%;border-radius:8px;max-height:300px;object-fit:contain"/>':'<div style="padding:2rem;text-align:center;color:rgba(255,255,255,.4)">📄 '+file.name+'</div>')+'</div>'+
+      '<div style="padding:1rem;display:flex;flex-direction:column;gap:8px;overflow-y:auto;max-height:70vh">'+
+      '<div style="padding:8px;background:rgba(52,211,153,0.1);border-radius:8px;font-size:11px;color:#34d399">✅ راجع وعدّل إن احتجت</div>'+
+      '<input id="ains-name" value="'+(data.name||'')+'" placeholder="الاسم *" style="'+st+'">'+
+      '<input id="ains-idno" value="'+(data.idno||'')+'" placeholder="رقم الهوية" style="'+st+'">'+
+      '<input id="ains-ins" value="'+(data.insurance_no||'')+'" placeholder="رقم التأمينات" style="'+st+'">'+
+      '<input id="ains-nat" value="'+(data.nat||'')+'" placeholder="الجنسية" style="'+st+'">'+
+      '<input id="ains-job" value="'+(data.job||'')+'" placeholder="المهنة" style="'+st+'">'+
+      '<input id="ains-sal" value="'+(data.salary||'0')+'" type="number" placeholder="الراتب" style="'+st+'">'+
+      '<input id="ains-hire" value="'+(data.hire_date||'')+'" type="date" style="'+st+'">'+
+      '</div></div>'+
+      '<div style="padding:.85rem 1.25rem;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid rgba(255,255,255,.07)">'+
+      '<button class="btn" onclick="closeAiIns()">إلغاء</button>'+
+      '<button class="btn gold" onclick="saveAiInsurance()">✓ إضافة الموظف</button></div></div>';
+    document.body.appendChild(modal);
+  };
+  reader.readAsDataURL(file);
+}
+
+function saveAiInsurance(){
+  const name=document.getElementById('ains-name').value;
+  if(!name.trim()){alert('أدخل اسم الموظف');return;}
+  db.employees.push({id:uid(),name,idno:document.getElementById('ains-idno').value,insurance:document.getElementById('ains-ins').value,nat:document.getElementById('ains-nat').value,title:document.getElementById('ains-job').value,salary:document.getElementById('ains-sal').value,housing:'0',transport:'0',pay:'cash',status:'نشط',hire:document.getElementById('ains-hire').value||td()});
+  save();renderAll();document.getElementById('ai-ins-modal').remove();ntf('✅ تم إضافة الموظف!');
+}
+
+// ── AI SCAN DOCUMENT ──
+async function aiScanDoc(input){
+  const file=input.files[0];if(!file)return;input.value='';
+  ntf('🤖 جاري تحليل الوثيقة...');
+  try{
+    const prompt=`حلل هذه الوثيقة. أرجع JSON فقط:
+{"name":"اسم الوثيقة","type":"رسمي أو تراخيص أو مالي أو تأمين أو عقود أو أخرى","issue_date":"تاريخ الإصدار YYYY-MM-DD","expiry_date":"تاريخ الانتهاء YYYY-MM-DD","notes":"ملاحظات"}`;
+    const result=await callClaudeWithFile(file,prompt);
+    const data=parseJSON(result);
+    if(!data){ntf('❌ لم يتمكن AI من قراءة الوثيقة');return;}
+    const reader2=new FileReader();
+    reader2.onload=function(ev2){
+      db.documents.push({id:uid(),name:data.name||file.name,type:data.type||'أخرى',upload:td(),expiry:data.expiry_date||'',notes:(data.notes||'')+'— قُرئت بالذكاء الاصطناعي',fileData:ev2.target.result,fileName:file.name,fileType:file.type});
+      save();renderDoc();ntf('✅ تم رفع وتحليل الوثيقة!');
+    };
+    reader2.readAsDataURL(file);
+  }catch(e){ntf('❌ خطأ: '+e.message);}
+}
+
+// ── AI SCAN VEHICLE ──
+async function aiScanVehicle(input){
+  const file=input.files[0];if(!file)return;input.value='';
+  ntf('🤖 جاري قراءة الرخصة...');
+  try{
+    const plateList=db.vehicles.map(v=>v.plate+(v.empId?' — '+en(v.empId):'')).join(' | ');
+    const prompt=`اقرأ رخصة السيارة أو الاستمارة. سيارات الشركة: ${plateList}. أرجع JSON فقط:
+{"plate":"رقم اللوحة","type":"نوع السيارة","model":"الموديل","color":"اللون","chassis":"رقم الشاسيه","lic_exp":"انتهاء رخصة السير YYYY-MM-DD","insp_exp":"انتهاء الفحص YYYY-MM-DD","ins_exp":"انتهاء التأمين YYYY-MM-DD","reg_exp":"انتهاء الاستمارة YYYY-MM-DD","owner":"اسم المالك"}`;
+    const result=await callClaudeWithFile(file,prompt);
+    const data=parseJSON(result);
+    if(!data){ntf('❌ لم يتمكن AI من قراءة الوثيقة');return;}
+    showAiVehicleModal(data,file);
+  }catch(e){ntf('❌ خطأ: '+e.message);}
+}
+
+function showAiVehicleModal(data,file){
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    const src=ev.target.result;
+    let autoEmpId='';
+    if(data.owner){const found=db.employees.find(e=>e.name.includes(data.owner.split(' ')[0])||data.owner.includes(e.name.split(' ')[0]));if(found)autoEmpId=found.id;}
+    const empsOpts='<option value="">— غير مخصصة —</option>'+db.employees.filter(e=>e.status!=='منتهي').map(e=>'<option value="'+e.id+'"'+(e.id===autoEmpId?' selected':'')+'>'+e.name+'</option>').join('');
+    const st='padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r);background:rgba(255,255,255,.07);color:#fff;font-family:Cairo,sans-serif;width:100%';
+    const modal=document.createElement('div');
+    modal.id='ai-veh-modal';
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto';
+    modal.innerHTML='<div style="background:rgba(10,5,30,0.98);border:1px solid rgba(245,200,66,0.3);border-radius:18px;width:800px;max-width:95vw;overflow:hidden;margin:auto">'+
+      '<div style="background:rgba(245,200,66,0.1);padding:1rem 1.25rem;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:center">'+
+      '<span style="font-size:14px;font-weight:700;color:var(--gold)">🤖 نتيجة قراءة الرخصة</span>'+
+      '<button class="btn sm red" onclick="closeAiVeh()">✕</button></div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0">'+
+      '<div style="padding:1rem;border-left:1px solid rgba(255,255,255,.07)"><img src="'+src+'" style="width:100%;border-radius:8px;max-height:340px;object-fit:contain;background:rgba(0,0,0,.3)"/>'+
+      (data.owner?'<div style="margin-top:8px;padding:8px;background:rgba(245,200,66,0.08);border-radius:8px;font-size:11px;color:var(--gold)">👤 المالك: '+data.owner+'</div>':'')+'</div>'+
+      '<div style="padding:1rem;display:flex;flex-direction:column;gap:9px;overflow-y:auto;max-height:75vh">'+
+      '<div class="fg"><label>رقم اللوحة *</label><input id="aveh-plate" value="'+(data.plate||'')+'" style="'+st.replace('rgba(255,255,255,.07)','rgba(245,200,66,0.05)')+'"></div>'+
+      '<div class="fg"><label>نوع السيارة</label><input id="aveh-type" value="'+(data.type||'')+'" style="'+st+'"></div>'+
+      '<div class="fg"><label>الموديل</label><input id="aveh-model" value="'+(data.model||'')+'" style="'+st+'"></div>'+
+      '<div class="fg"><label>اللون</label><input id="aveh-color" value="'+(data.color||'')+'" style="'+st+'"></div>'+
+      '<div class="fg"><label>رقم الشاسيه</label><input id="aveh-chassis" value="'+(data.chassis||'')+'" style="'+st+'"></div>'+
+      '<div class="fg"><label>الموظف المسؤول</label><select id="aveh-emp" style="'+st+'">'+empsOpts+'</select></div>'+
+      '<div class="fg"><label>انتهاء رخصة السير</label><input id="aveh-lic" type="date" value="'+(data.lic_exp||'')+'" style="'+st+'"></div>'+
+      '<div class="fg"><label>انتهاء الفحص الدوري</label><input id="aveh-insp" type="date" value="'+(data.insp_exp||'')+'" style="'+st+'"></div>'+
+      '<div class="fg"><label>انتهاء التأمين</label><input id="aveh-ins" type="date" value="'+(data.ins_exp||'')+'" style="'+st+'"></div>'+
+      '<div class="fg"><label>انتهاء الاستمارة</label><input id="aveh-reg" type="date" value="'+(data.reg_exp||'')+'" style="'+st+'"></div>'+
+      '</div></div>'+
+      '<div style="padding:.85rem 1.5rem;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid rgba(255,255,255,.07)">'+
+      '<button class="btn" onclick="closeAiVeh()">إلغاء</button>'+
+      '<button class="btn gold" onclick="saveAiVehicle()">✓ حفظ السيارة</button></div></div>';
+    document.body.appendChild(modal);
+  };
+  reader.readAsDataURL(file);
+}
+
+function closeAiVeh(){const m=document.getElementById('ai-veh-modal');if(m)m.remove();}
+
+function saveAiVehicle(){
+  const plate=document.getElementById('aveh-plate').value;
+  if(!plate.trim()){alert('أدخل رقم اللوحة');return;}
+  if(!db.vehicles)db.vehicles=[];
+  db.vehicles.push({id:uid(),plate,type:document.getElementById('aveh-type').value,model:document.getElementById('aveh-model').value,color:document.getElementById('aveh-color').value,chassis:document.getElementById('aveh-chassis').value,empId:document.getElementById('aveh-emp').value,licExp:document.getElementById('aveh-lic').value,inspExp:document.getElementById('aveh-insp').value,insExp:document.getElementById('aveh-ins').value,regExp:document.getElementById('aveh-reg').value,status:'نشطة',note:'قُرئت بالذكاء الاصطناعي'});
+  save();renderVeh();closeAiVeh();ntf('✅ تم إضافة السيارة!');
+}
+
+// ── AI ANALYZE ATTENDANCE ──
+async function aiAnalyzeAttendance(input){
+  const file=input.files[0];if(!file)return;input.value='';
+  const apiKey=getApiKey();
+  if(!apiKey){ntf('❌ أدخل API Key في الإعدادات أولاً');return;}
+  ntf('🤖 جاري تحليل كشف الحضور...');
+  try{
+    const empList=db.employees.filter(e=>e.status==='نشط').map(e=>e.name+' (راتب: '+((+e.salary||0)+(+e.housing||0)+(+e.transport||0))+' ريال)').join(' | ');
+    const prompt=`أنت محلل رواتب. لديك كشف حضور موظفين.
+قائمة موظفي الشركة: ${empList}
+- العمود الأيمن: اسم الموظف
+- العمود الأخضر الوسط: عدد أيام الحضور (مثل "1 يوم")
+- افترض إجمالي أيام العمل = 26 يوم
+أرجع JSON فقط:
+{"month":"مايو","year":2026,"work_days":26,"employees":[{"name":"اسم الموظف","present_days":25,"absent_days":1,"late_minutes":0,"notes":""}]}`;
+    const result=await callClaudeWithFile(file,prompt);
+    const data=parseJSON(result);
+    if(!data||!data.employees){ntf('❌ لم يتمكن AI من قراءة الكشف');return;}
+    showAttendanceModal(data,file);
+  }catch(e){ntf('❌ خطأ: '+e.message);}
+}
+
+function importAttendance(input){
+  aiAnalyzeAttendance(input);
+}
+
+// ── AI SCAN TRAFFIC ──
+async function aiScanTraffic(input){
+  const file=input.files[0];if(!file)return;input.value='';
+  const apiKey=getApiKey();
+  if(!apiKey){ntf('❌ أدخل API Key في الإعدادات أولاً');return;}
+  ntf('🤖 جاري قراءة المخالفة المرورية...');
+  try{
+    const plateList=db.vehicles.map(v=>v.plate+(v.empId?' — '+en(v.empId):'')).join(' | ');
+    const empList=db.employees.filter(e=>e.status!=='منتهي').map(e=>e.name).join(' | ');
+    const prompt=`اقرأ هذه المخالفة المرورية. سيارات الشركة: ${plateList}. الموظفون: ${empList}.
+أرجع JSON فقط:
+{"plate":"رقم اللوحة","violation_type":"نوع المخالفة","amount":"المبلغ رقم فقط","fine":"الغرامة رقم فقط أو 0","total":"الإجمالي رقم فقط","date":"التاريخ YYYY-MM-DD","location":"المكان","violation_no":"رقم المخالفة","matched_plate":"اللوحة المطابقة أو null","matched_employee":"الموظف المطابق أو null","speed":"السرعة أو null","speed_limit":"الحد المسموح أو null"}`;
+    const result=await callClaudeWithFile(file,prompt);
+    const data=parseJSON(result);
+    if(!data){ntf('❌ لم يتمكن AI من قراءة المخالفة');return;}
+    showAiTrafficModal(data,file);
+  }catch(e){ntf('❌ خطأ: '+e.message);}
+}
+
+function showAiTrafficModal(data,file){
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    const src=ev.target.result;
+    const isImg=file.type.startsWith('image');
+    let matchedVeh=db.vehicles.find(v=>v.plate===(data.matched_plate||data.plate));
+    let matchedEmpId=matchedVeh?.empId||'';
+    if(!matchedEmpId&&data.matched_employee){const emp=db.employees.find(e=>e.name===data.matched_employee);if(emp)matchedEmpId=emp.id;}
+    const empsOpts='<option value="">— اختر موظفاً —</option>'+db.employees.filter(e=>e.status!=='منتهي').map(e=>'<option value="'+e.id+'"'+(e.id===matchedEmpId?' selected':'')+'>'+e.name+'</option>').join('');
+    const platesOpts='<option value="">— اختر لوحة —</option>'+db.vehicles.map(v=>'<option value="'+v.plate+'"'+(v.plate===(data.matched_plate||data.plate)?' selected':'')+'>'+v.plate+(v.type?' — '+v.type:'')+'</option>').join('')+'<option value="_other">أخرى</option>';
+    const totalAmt=data.total||data.amount||0;
+    const st='padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r);background:rgba(255,255,255,.07);color:#fff;font-family:Cairo,sans-serif;width:100%';
+    const modal=document.createElement('div');
+    modal.id='ai-traf-modal';
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto';
+    modal.innerHTML='<div style="background:rgba(10,5,30,0.98);border:1px solid rgba(245,200,66,0.3);border-radius:18px;width:820px;max-width:95vw;overflow:hidden;margin:auto">'+
+      '<div style="background:rgba(245,200,66,0.1);padding:1rem 1.5rem;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:center">'+
+      '<span style="font-size:14px;font-weight:700;color:var(--gold)">🚗 بيانات المخالفة من AI</span>'+
+      '<button class="btn sm red" onclick="closeAiTraf()">✕</button></div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0">'+
+      '<div style="padding:1rem;border-left:1px solid rgba(255,255,255,.07);">'+(isImg?'<img src="'+src+'" style="width:100%;border-radius:8px;max-height:350px;object-fit:contain"/>':'<div style="padding:2rem;text-align:center;color:rgba(255,255,255,.4)">📄 '+file.name+'</div>')+
+      (data.speed?'<div style="margin-top:10px;padding:10px;background:rgba(248,113,113,0.15);border-radius:8px;text-align:center"><div style="font-size:11px;color:rgba(255,255,255,.5)">السرعة</div><div style="font-size:28px;font-weight:800;color:#f87171">'+data.speed+' كم/س</div>'+(data.speed_limit?'<div style="font-size:11px;color:rgba(255,255,255,.4)">الحد: '+data.speed_limit+'</div>':'')+'</div>':'')+
+      (data.location?'<div style="margin-top:8px;padding:8px;background:rgba(255,255,255,.04);border-radius:8px;font-size:11px;color:rgba(255,255,255,.5)">📍 '+data.location+'</div>':'')+'</div>'+
+      '<div style="padding:1rem;display:flex;flex-direction:column;gap:9px;overflow-y:auto;max-height:75vh">'+
+      '<div style="padding:8px;background:rgba(52,211,153,0.1);border-radius:8px;font-size:11px;color:#34d399">✅ راجع البيانات</div>'+
+      '<div class="fg"><label>رقم اللوحة</label><select id="atraf-plate" style="'+st+'">'+platesOpts+'</select></div>'+
+      '<div class="fg"><label>الموظف المسؤول</label><select id="atraf-emp" style="'+st+'">'+empsOpts+'</select></div>'+
+      '<div class="fg"><label>نوع المخالفة</label><select id="atraf-type" style="'+st+'">'+['تجاوز السرعة','قطع إشارة','وقوف خاطئ','استخدام الجوال','أخرى'].map(t=>'<option'+(data.violation_type&&data.violation_type.includes(t)?' selected':'')+'>'+t+'</option>').join('')+'</select></div>'+
+      '<div class="fg"><label>التاريخ</label><input id="atraf-date" type="date" value="'+(data.date||'')+'" style="'+st+'"></div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+      '<div class="fg"><label>مبلغ المخالفة</label><input id="atraf-amount" type="number" value="'+(data.amount||0)+'" style="'+st+'" oninput="calcTrafTotal()"></div>'+
+      '<div class="fg"><label>الغرامة الإضافية</label><input id="atraf-fine" type="number" value="'+(data.fine||0)+'" style="'+st+'" oninput="calcTrafTotal()"></div></div>'+
+      '<div style="padding:10px;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.2);border-radius:8px">'+
+      '<div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:3px">الإجمالي</div>'+
+      '<div id="atraf-total-disp" style="font-size:22px;font-weight:800;color:#f87171">'+Number(totalAmt).toLocaleString('en-US')+' ريال</div></div>'+
+      '<div class="fg"><label>التحمل</label><select id="atraf-resp" style="'+st+'"><option value="full">على الموظف كاملاً</option><option value="half">مشتركة 50/50</option><option value="co">على الشركة</option></select></div>'+
+      '</div></div>'+
+      '<div style="padding:.85rem 1.5rem;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid rgba(255,255,255,.07)">'+
+      '<button class="btn" onclick="closeAiTraf()">إلغاء</button>'+
+      '<button class="btn gold" onclick="saveAiTraffic()">✓ حفظ وتطبيق الخصم</button></div></div>';
+    document.body.appendChild(modal);
+    document.getElementById('atraf-plate').addEventListener('change',function(){
+      const v=db.vehicles.find(vv=>vv.plate===this.value);
+      if(v&&v.empId)document.getElementById('atraf-emp').value=v.empId;
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+function calcTrafTotal(){
+  const amt=parseFloat(document.getElementById('atraf-amount')?.value)||0;
+  const fine=parseFloat(document.getElementById('atraf-fine')?.value)||0;
+  const disp=document.getElementById('atraf-total-disp');
+  if(disp)disp.textContent=(amt+fine).toLocaleString('en-US')+' ريال';
+}
+
+function closeAiTraf(){const m=document.getElementById('ai-traf-modal');if(m)m.remove();}
+
+function saveAiTraffic(){
+  const plateSel=document.getElementById('atraf-plate');
+  let plate=plateSel?plateSel.value:'';
+  if(plate==='_other'){plate=prompt('أدخل رقم اللوحة:')||'';}
+  if(!plate){alert('أدخل رقم اللوحة');return;}
+  const empId=document.getElementById('atraf-emp')?.value||'';
+  const type=document.getElementById('atraf-type')?.value||'أخرى';
+  const date=document.getElementById('atraf-date')?.value||td();
+  const amount=parseFloat(document.getElementById('atraf-amount')?.value)||0;
+  const fine=parseFloat(document.getElementById('atraf-fine')?.value)||0;
+  const total=amount+fine;
+  const resp=document.getElementById('atraf-resp')?.value||'full';
+  db.traffic.push({id:uid(),empId,plate,type,date,amount:String(total),resp,notes:'قُرئت بالذكاء الاصطناعي'+(fine>0?' (غرامة: '+fine+')':'')});
+  let empDed=resp==='full'?total:resp==='half'?Math.round(total/2):0;
+  save();renderAll();closeAiTraf();
+  ntf('✅ تم حفظ المخالفة'+(empDed>0?' — سيُخصم '+empDed.toLocaleString('en-US')+' من الراتب':''));
+}
+
+// ── BACKUP / RESTORE ──
+function exportData(){
+  const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='kayan-hr-backup-'+new Date().toLocaleDateString('ar-SA').replace(/\//g,'-')+'.json';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);ntf('✅ تم تصدير النسخة الاحتياطية!');
+}
+
+function importData(input){
+  const file=input.files[0];if(!file)return;input.value='';
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const imported=JSON.parse(e.target.result);
+      if(!imported.employees){alert('الملف غير صالح');return;}
+      if(!confirm('استعادة البيانات ستستبدل البيانات الحالية. هل أنت متأكد؟'))return;
+      db=imported;
+      if(!db.loans)db.loans=[];
+      if(!db.vehicles)db.vehicles=[];
+      save();renderAll();ntf('✅ تم استعادة البيانات! '+db.employees.length+' موظف');
+    }catch(ex){alert('خطأ: '+ex.message);}
+  };
+  reader.readAsText(file);
+}
+
+// ── SHOW ATTENDANCE MODAL ──
+function showAttendanceModal(data,file){
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    const src=ev.target.result;
+    const isImg=file.type.startsWith('image');
+    const mn=parseInt(document.getElementById('sm').value);
+    const yr=parseInt(document.getElementById('sy').value);
+    const workDays=data.work_days||26;
+    const activeEmps=db.employees.filter(e=>e.status==='نشط');
+    let rows='',totalDed=0;
+    const matched=[];
+    data.employees.forEach(function(rec){
+      let emp=activeEmps.find(e=>e.name===rec.name);
+      if(!emp)emp=activeEmps.find(e=>e.name.includes(rec.name.split(' ')[0])||rec.name.includes(e.name.split(' ')[0]));
+      const gross=emp?(+emp.salary||0)+(+emp.housing||0)+(+emp.transport||0):0;
+      const dailyRate=gross/workDays;
+      const absentDed=Math.round(dailyRate*(rec.absent_days||0));
+      const lateDed=Math.round(((rec.late_minutes||0)/60)*(db.settings.lateRate||50));
+      const net=gross-absentDed-lateDed;
+      totalDed+=absentDed+lateDed;
+      matched.push({emp,rec,gross,absentDed,lateDed,net});
+      const empName=emp?emp.name:rec.name+' ⚠️';
+      rows+='<tr><td style="font-weight:600">'+empName+'</td>';
+      rows+='<td style="color:#34d399;text-align:center">'+(rec.present_days||0)+'</td>';
+      rows+='<td style="color:#f87171;text-align:center">'+(rec.absent_days||0)+'</td>';
+      rows+='<td style="text-align:center">'+(rec.late_minutes||0)+' دق</td>';
+      rows+='<td>'+fmt(gross)+'</td>';
+      rows+='<td style="color:#f87171">'+(absentDed>0?'- '+fmt(absentDed):'—')+'</td>';
+      rows+='<td style="color:#f87171">'+(lateDed>0?'- '+fmt(lateDed):'—')+'</td>';
+      rows+='<td style="color:var(--gold);font-weight:700">'+fmt(net)+'</td>';
+      rows+='<td style="color:rgba(255,255,255,.4);font-size:11px">'+(rec.notes||'')+'</td></tr>';
+    });
+    window._attMatched=matched;window._attMonth=mn;window._attYear=yr;window._attWorkDays=workDays;
+    const modal=document.createElement('div');
+    modal.id='att-ai-modal';
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto';
+    modal.innerHTML='<div style="background:rgba(10,5,30,0.98);border:1px solid rgba(245,200,66,0.3);border-radius:18px;width:1100px;max-width:98vw;overflow:hidden;margin:auto">'+
+      '<div style="background:rgba(245,200,66,0.1);padding:1rem 1.5rem;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:center">'+
+      '<span style="font-size:14px;font-weight:700;color:var(--gold)">🤖 تحليل كشف الحضور — '+(data.month||'—')+' '+(data.year||yr)+'</span>'+
+      '<button class="btn sm red" onclick="closeAttModal()">✕</button></div>'+
+      '<div style="display:grid;grid-template-columns:280px 1fr;gap:0;max-height:75vh">'+
+      '<div style="padding:1rem;border-left:1px solid rgba(255,255,255,.07);overflow-y:auto">'+(isImg?'<img src="'+src+'" style="width:100%;border-radius:8px"/>':'<div style="padding:2rem;text-align:center;color:rgba(255,255,255,.4)">📄 '+file.name+'</div>')+
+      '<div style="margin-top:12px;padding:10px;background:rgba(255,255,255,.04);border-radius:8px;font-size:12px">'+
+      '<div style="color:rgba(255,255,255,.5);margin-bottom:5px">معلومات</div>'+
+      '<div>الشهر: <span style="color:var(--gold)">'+(data.month||'—')+'</span></div>'+
+      '<div>أيام العمل: <span style="color:var(--gold)">'+workDays+'</span></div>'+
+      '<div>الموظفين: <span style="color:var(--gold)">'+data.employees.length+'</span></div></div></div>'+
+      '<div style="overflow:auto;max-height:75vh"><table style="width:100%;border-collapse:collapse;font-size:12px">'+
+      '<thead style="position:sticky;top:0;background:rgba(10,5,30,0.98)"><tr>'+
+      '<th style="text-align:right;padding:10px;border-bottom:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5)">الموظف</th>'+
+      '<th style="text-align:center;padding:10px;border-bottom:1px solid rgba(255,255,255,.1);color:#34d399">أيام الحضور</th>'+
+      '<th style="text-align:center;padding:10px;border-bottom:1px solid rgba(255,255,255,.1);color:#f87171">أيام الغياب</th>'+
+      '<th style="text-align:center;padding:10px;border-bottom:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5)">تأخير</th>'+
+      '<th style="text-align:right;padding:10px;border-bottom:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5)">الإجمالي</th>'+
+      '<th style="text-align:right;padding:10px;border-bottom:1px solid rgba(255,255,255,.1);color:#f87171">خصم غياب</th>'+
+      '<th style="text-align:right;padding:10px;border-bottom:1px solid rgba(255,255,255,.1);color:#f87171">خصم تأخير</th>'+
+      '<th style="text-align:right;padding:10px;border-bottom:1px solid rgba(255,255,255,.1);color:var(--gold)">الصافي</th>'+
+      '<th style="text-align:right;padding:10px;border-bottom:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.3)">ملاحظات</th>'+
+      '</tr></thead><tbody>'+rows+'</tbody></table></div></div>'+
+      '<div style="padding:1rem 1.5rem;border-top:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:space-between">'+
+      '<div style="font-size:13px">إجمالي الخصومات: <span style="color:#f87171;font-weight:700">'+fmt(totalDed)+' ريال</span></div>'+
+      '<div style="display:flex;gap:8px">'+
+      '<button class="btn" onclick="closeAttModal()">إلغاء</button>'+
+      '<button class="btn gold" onclick="doApplyAll()">✓ تطبيق الخصومات على جميع الموظفين</button></div></div></div>';
+    document.body.appendChild(modal);
+  };
+  reader.readAsDataURL(file);
+}
+
+function doApplyAll(){applyAttendance(window._attMatched,window._attMonth,window._attYear);}
+
+function applyAttendance(matched,mn,yr){
+  const workDays=window._attWorkDays||26;
+  const lateRate=db.settings.lateRate||50;
+  const m=window._attMatched||matched;
+  m.forEach(function(item){
+    if(!item.emp)return;
+    const ds=yr+'-'+String(mn+1).padStart(2,'0')+'-15';
+    const gross=(+item.emp.salary||0)+(+item.emp.housing||0)+(+item.emp.transport||0);
+    const absentDed=Math.round((gross/workDays)*(item.rec.absent_days||0));
+    const lateDed=Math.round(((item.rec.late_minutes||0)/60)*lateRate);
+    if(absentDed>0)db.deductions.push({id:uid(),empId:item.emp.id,type:'غياب',date:ds,amount:String(absentDed),reason:'غياب '+(item.rec.absent_days)+' يوم — '+MN[mn]+' '+yr});
+    if(lateDed>0)db.attendance.push({id:uid(),empId:item.emp.id,date:ds,time:'',mins:String(item.rec.late_minutes||0),action:'خصم مطبق',deduct:String(lateDed)});
+  });
+  save();renderAll();
+  document.getElementById('att-ai-modal').remove();
+  ntf('✅ تم تطبيق بيانات الحضور على '+m.filter(x=>x.emp).length+' موظف');
+}
+
+// Backup buttons in settings
 // ── LOANS RENDER ──
 function renderLoans(){
   if(!db.loans)db.loans=[];

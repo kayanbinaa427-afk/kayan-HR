@@ -314,7 +314,7 @@ tr:hover td{background:rgba(255,255,255,0.03)}
           <button class="btn grn" onclick="exportData()">💾 نسخ احتياطي</button>
           <button class="btn blu" onclick="document.getElementById('import-data').click()">📥 استعادة</button>
           <input type="file" id="import-data" accept=".json" style="display:none" onchange="importData(this)">
-          <button class="btn red" onclick="if(confirm('مسح جميع البيانات؟'))clearAll()">🗑 مسح الكل</button>
+          <button class="btn red" onclick="clearAll()">🗑 مسح كل البيانات (التطبيق + السحابة)</button>
         </div>
       </div>
     </div>
@@ -968,7 +968,20 @@ function saveSettings(){
   if(apiKey) localStorage.setItem('hr_api_key',apiKey);
   save();renderDash();ntf('✅ تم حفظ الإعدادات');
 }
-function clearAll(){db={employees:[],iqama:[],documents:[],deductions:[],bonuses:[],traffic:[],leaves:[],attendance:[],loans:[],vehicles:[],settings:{company:'شركة كيان وبناء للمقاولات',leaveDays:21,iqamaWarn:60,lateRate:50}};localStorage.removeItem(KEY);renderAll();ntf('تم مسح جميع البيانات');}
+async function clearAll(){
+  if(!confirm('سيتم مسح جميع البيانات من التطبيق وقاعدة البيانات السحابية نهائياً. هل أنت متأكد؟')) return;
+  if(!confirm('تأكيد أخير — لا يمكن التراجع عن هذا الإجراء!')) return;
+  db={...defaultDB};
+  localStorage.removeItem(KEY);
+  const ok = await loadFirebase();
+  if(ok && firedb){
+    try{
+      await firedb.collection(COL).doc(DOC_ID).delete();
+    }catch(e){ console.error('Firebase delete error:',e); }
+  }
+  renderAll();
+  ntf('✅ تم مسح جميع البيانات من التطبيق والسحابة');
+}
 
 // Print receipt
 function printRec(empId,m,y){

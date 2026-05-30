@@ -704,7 +704,7 @@ function getSal(empId,mn,yr){
   const e=db.employees.find(x=>x.id===empId);if(!e)return null;
   const gross=(+e.salary||0)+(+e.housing||0)+(+e.transport||0);
   const inM=arr=>arr.filter(x=>{if(!x.date)return false;const d=new Date(x.date);return d.getMonth()===mn&&d.getFullYear()===yr;});
-  const ded=inM(db.deductions.filter(d=>d.empId===empId)).reduce((a,d)=>a+(+d.amount||0),0)
+  const ded=inM(db.deductions.filter(d=>d.empId===empId&&d.type!=='مخالفة مرورية')).reduce((a,d)=>a+(+d.amount||0),0)
     +inM(db.attendance.filter(a=>a.empId===empId)).reduce((a,x)=>a+(+x.deduct||0),0)
     +inM(db.traffic.filter(t=>t.empId===empId)).reduce((a,t)=>a+(t.resp==='full'?+t.amount:t.resp==='half'?Math.round(+t.amount/2):0),0);
   const bon=inM(db.bonuses.filter(b=>b.empId===empId)).reduce((a,b)=>a+(+b.amount||0),0);
@@ -1010,9 +1010,11 @@ function printRec(empId,m,y){
   });
   const loanTotal = loanDeds.reduce(function(a,d){return a+(+d.amount||0);},0);
 
-  // Get regular deductions (excluding loan installments)
+  // Get regular deductions (excluding loan installments AND traffic - traffic handled separately)
   const regDeds = db.deductions.filter(function(d){
-    if(d.empId!==empId || d.type==='قسط سلفة') return false;
+    if(d.empId!==empId) return false;
+    if(d.type==='قسط سلفة') return false;
+    if(d.type==='مخالفة مرورية') return false; // Traffic handled from db.traffic directly
     if(!d.date) return false;
     const dd2=new Date(d.date);
     return dd2.getMonth()===mn && dd2.getFullYear()===yr;
@@ -2617,22 +2619,14 @@ function saveAiTraffic(){
     notes: 'قُرئت بالذكاء الاصطناعي'+(fine>0?' (غرامة: '+fine+')':'')
   });
 
-  // Apply deduction based on responsibility
+  // getSal() already calculates traffic deductions automatically
+  // No need to add manual deduction - avoid double counting
   let empDed = 0;
   if(resp === 'full') empDed = total;
   else if(resp === 'half') empDed = Math.round(total/2);
 
-  if(empId && empDed > 0){
-    db.deductions.push({
-      id: uid(), empId, type: 'مخالفة مرورية',
-      date: date || new Date().toISOString().split('T')[0],
-      amount: String(empDed),
-      reason: 'مخالفة '+type+' — لوحة '+plate+(fine>0?' (شامل الغرامة)':'')
-    });
-  }
-
   save(); renderAll(); closeAiTraf();
-  ntf('✅ تم حفظ المخالفة' + (empDed>0?' وتطبيق خصم '+empDed.toLocaleString('en-US')+' على الموظف':''));
+  ntf('✅ تم حفظ المخالفة' + (empDed>0?' — سيُخصم '+empDed.toLocaleString('en-US')+' من راتب الموظف تلقائياً':''));
 }
 
 function closeVehTraf(){ const m=document.getElementById("veh-traf-modal"); if(m)m.remove(); }

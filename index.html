@@ -88,6 +88,8 @@ tr:hover td{background:rgba(255,255,255,0.03)}
 .notif{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#f5c842,#e8a800);color:#1a1200;padding:9px 24px;border-radius:30px;font-size:13px;font-weight:700;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
 .notif.show{opacity:1}
 </style>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 <div class="app">
@@ -495,53 +497,24 @@ const COL = 'hr_data';
 
 async function loadFirebase(){
   if(firedb) return true;
-  // Check if firebase already loaded (from cache)
-  if(typeof firebase !== 'undefined' && firebase.apps){
-    try{
-      if(!firebase.apps.length){
-        firebase.initializeApp({
-          apiKey:"AIzaSyBE7nW30FDBPm9dynCuztOeFY053qcQiV8",
-          authDomain:"kayan-hr-7dc59.firebaseapp.com",
-          projectId:"kayan-hr-7dc59",
-          storageBucket:"kayan-hr-7dc59.firebasestorage.app",
-          messagingSenderId:"633109063030",
-          appId:"1:633109063030:web:436de6fc950b794f7bc657"
-        });
-      }
-      firedb = firebase.firestore();
-      return true;
-    }catch(e){ console.error('Firebase quick init:', e); }
+  try{
+    if(typeof firebase === 'undefined') return false;
+    if(!firebase.apps || !firebase.apps.length){
+      firebase.initializeApp({
+        apiKey:"AIzaSyBE7nW30FDBPm9dynCuztOeFY053qcQiV8",
+        authDomain:"kayan-hr-7dc59.firebaseapp.com",
+        projectId:"kayan-hr-7dc59",
+        storageBucket:"kayan-hr-7dc59.firebasestorage.app",
+        messagingSenderId:"633109063030",
+        appId:"1:633109063030:web:436de6fc950b794f7bc657"
+      });
+    }
+    firedb = firebase.firestore();
+    return true;
+  }catch(e){
+    console.error('Firebase init error:',e);
+    return false;
   }
-  return new Promise(function(resolve){
-    // Load firebase-app
-    const s1 = document.createElement('script');
-    s1.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js';
-    s1.onload = function(){
-      // Load firebase-firestore
-      const s2 = document.createElement('script');
-      s2.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js';
-      s2.onload = function(){
-        try {
-          if(!firebase.apps.length){
-            firebase.initializeApp({
-              apiKey: "AIzaSyBE7nW30FDBPm9dynCuztOeFY053qcQiV8",
-              authDomain: "kayan-hr-7dc59.firebaseapp.com",
-              projectId: "kayan-hr-7dc59",
-              storageBucket: "kayan-hr-7dc59.firebasestorage.app",
-              messagingSenderId: "633109063030",
-              appId: "1:633109063030:web:436de6fc950b794f7bc657"
-            });
-          }
-          firedb = firebase.firestore();
-          resolve(true);
-        } catch(e){ console.error('Firebase init:', e); resolve(false); }
-      };
-      s2.onerror = function(){ resolve(false); };
-      document.head.appendChild(s2);
-    };
-    s1.onerror = function(){ resolve(false); };
-    document.head.appendChild(s1);
-  });
 }
 
 async function saveToCloud(data){

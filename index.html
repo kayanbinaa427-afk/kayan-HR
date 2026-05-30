@@ -129,7 +129,10 @@ tr:hover td{background:rgba(255,255,255,0.03)}
 <div class="main" id="mn">
   <div class="topbar">
     <span class="topbar-title" id="ptitle">لوحة التحكم</span>
-    <span id="datelbl" style="font-size:11px;color:rgba(255,255,255,0.3)"></span>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span id="sync-lbl" style="font-size:11px;color:rgba(52,211,153,0.7)">☁️ Firebase</span>
+      <span id="datelbl" style="font-size:11px;color:rgba(255,255,255,0.3)"></span>
+    </div>
   </div>
   <div class="content">
 
@@ -473,13 +476,127 @@ tr:hover td{background:rgba(255,255,255,0.03)}
 <div class="notif" id="notif"></div>
 
 <script>
+// Firebase will be loaded dynamically
+let firedb = null;
+const DOC_ID = 'main';
+const COL = 'hr_data';
+
+async function loadFirebase(){
+  if(firedb) return true;
+  return new Promise(function(resolve){
+    // Load firebase-app
+    const s1 = document.createElement('script');
+    s1.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js';
+    s1.onload = function(){
+      // Load firebase-firestore
+      const s2 = document.createElement('script');
+      s2.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js';
+      s2.onload = function(){
+        try {
+          if(!firebase.apps.length){
+            firebase.initializeApp({
+              apiKey: "AIzaSyBE7nW30FDBPm9dynCuztOeFY053qcQiV8",
+              authDomain: "kayan-hr-7dc59.firebaseapp.com",
+              projectId: "kayan-hr-7dc59",
+              storageBucket: "kayan-hr-7dc59.firebasestorage.app",
+              messagingSenderId: "633109063030",
+              appId: "1:633109063030:web:436de6fc950b794f7bc657"
+            });
+          }
+          firedb = firebase.firestore();
+          resolve(true);
+        } catch(e){ console.error('Firebase init:', e); resolve(false); }
+      };
+      s2.onerror = function(){ resolve(false); };
+      document.head.appendChild(s2);
+    };
+    s1.onerror = function(){ resolve(false); };
+    document.head.appendChild(s1);
+  });
+}
+
+async function saveToCloud(data){
+  const ok = await loadFirebase();
+  if(!ok){ showSyncStatus('⚠️ لا يوجد اتصال', 'warn'); return; }
+  try {
+    await firedb.collection(COL).doc(DOC_ID).set(data);
+    showSyncStatus('☁️ محفوظ', 'success');
+  } catch(e){
+    showSyncStatus('⚠️ خطأ في الحفظ', 'error');
+    console.error('Firebase save error:', e);
+  }
+}
+
+async function loadFromCloud(){
+  showSyncStatus('⏳ جاري التحميل...', 'warn');
+  const ok = await loadFirebase();
+  if(!ok){
+    showSyncStatus('⚠️ بيانات محلية فقط', 'warn');
+    const local = localStorage.getItem(KEY);
+    if(local){ db = {...defaultDB, ...JSON.parse(local)}; }
+    if(!db.loans) db.loans=[];
+    if(!db.vehicles) db.vehicles=[];
+    renderAll();
+    return;
+  }
+  try {
+    const doc = await firedb.collection(COL).doc(DOC_ID).get();
+    if(doc.exists){
+      const data = doc.data();
+      db = {...defaultDB, ...data};
+      if(!db.loans) db.loans=[];
+      if(!db.vehicles) db.vehicles=[];
+      localStorage.setItem(KEY, JSON.stringify(db));
+      showSyncStatus('☁️ تم التحميل', 'success');
+      renderAll();
+    } else {
+      // First time - load from localStorage if exists
+      const local = localStorage.getItem(KEY);
+      if(local){
+        db = {...defaultDB, ...JSON.parse(local)};
+        if(!db.loans) db.loans=[];
+        if(!db.vehicles) db.vehicles=[];
+        // Upload local data to cloud
+        await saveToCloud(db);
+      }
+      renderAll();
+    }
+  } catch(e){
+    showSyncStatus('⚠️ لا يوجد اتصال - بيانات محلية', 'warn');
+    // Fallback to localStorage
+    const local = localStorage.getItem(KEY);
+    if(local){ db = {...defaultDB, ...JSON.parse(local)}; }
+    if(!db.loans) db.loans=[];
+    if(!db.vehicles) db.vehicles=[];
+    renderAll();
+  }
+}
+
+function showSyncStatus(msg, type){
+  let el = document.getElementById('sync-status');
+  if(!el){ el = document.createElement('div'); el.id='sync-status'; el.style.cssText='position:fixed;bottom:1rem;left:1rem;padding:6px 14px;border-radius:20px;font-size:11px;font-weight:700;z-index:500;transition:opacity .5s;font-family:Cairo,sans-serif'; document.body.appendChild(el); }
+  const styles = {
+    success: 'background:rgba(52,211,153,0.15);color:#34d399;border:1px solid rgba(52,211,153,0.3)',
+    error: 'background:rgba(248,113,113,0.15);color:#f87171;border:1px solid rgba(248,113,113,0.3)',
+    warn: 'background:rgba(251,191,36,0.15);color:#fbbf24;border:1px solid rgba(251,191,36,0.3)'
+  };
+  el.style.cssText += ';'+styles[type];
+  el.textContent = msg;
+  el.style.opacity='1';
+  setTimeout(()=>{ el.style.opacity='0'; }, 3000);
+}
+
 const MN=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 const TITLES={dashboard:'لوحة التحكم',loans:'السلف والاقتطاعات',vehicles:'السيارات والرخص',employees:'الموظفون',iqama:'الإقامات',documents:'وثائق الشركة',salaries:'الرواتب',report:'تقرير الرواتب',deductions:'الخصومات والجزاءات',bonuses:'المكافآت',traffic:'المخالفات المرورية',leaves:'الإجازات',attendance:'التأخيرات والحضور',settings:'الإعدادات'};
 const KEY='hr_kayan_v3';
-let db={employees:[],iqama:[],documents:[],deductions:[],bonuses:[],traffic:[],leaves:[],attendance:[],loans:[],vehicles:[],settings:{company:'شركة كيان وبناء للمقاولات',leaveDays:21,iqamaWarn:60,lateRate:50}};
+const defaultDB={employees:[],iqama:[],documents:[],deductions:[],bonuses:[],traffic:[],leaves:[],attendance:[],loans:[],vehicles:[],settings:{company:'شركة كيان وبناء للمقاولات',leaveDays:21,iqamaWarn:60,lateRate:50}};
+let db = typeof defaultDB !== 'undefined' ? {...defaultDB} : {employees:[],iqama:[],documents:[],deductions:[],bonuses:[],traffic:[],leaves:[],attendance:[],loans:[],vehicles:[],settings:{company:'شركة كيان وبناء للمقاولات',leaveDays:21,iqamaWarn:60,lateRate:50}};
 
-function load(){try{const s=localStorage.getItem(KEY);if(s){const loaded=JSON.parse(s);db={...db,...loaded};if(!db.loans)db.loans=[];if(!db.vehicles)db.vehicles=[];}}catch(e){}renderAll();}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(db));}catch(e){}}
+function load(){ loadFromCloud(); }
+function save(){
+  try{ localStorage.setItem(KEY,JSON.stringify(db)); }catch(e){}
+  saveToCloud(db);
+}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 function fmt(n){return Number(n||0).toLocaleString('ar-SA');}
 function td(){return new Date().toISOString().split('T')[0];}

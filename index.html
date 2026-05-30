@@ -274,7 +274,16 @@ tr:hover td{background:rgba(255,255,255,0.03)}
 
     <!-- TRAFFIC -->
     <div class="page" id="page-traffic">
-      <div class="card"><div class="card-hdr"><span class="card-title">🚗 المخالفات المرورية</span><button class="btn pri" onclick="openM('m-traf')">+ إضافة</button></div><div id="traf-wrap"></div></div>
+      <div class="card">
+        <div class="card-hdr"><span class="card-title">🚗 المخالفات المرورية</span>
+          <div class="fc">
+            <button class="btn gold" onclick="document.getElementById('traf-ai-inp').click()">🤖 قراءة مخالفة بـ AI</button>
+            <input type="file" id="traf-ai-inp" accept="image/*,.pdf" style="display:none" onchange="aiScanTraffic(this)">
+            <button class="btn pri" onclick="openM('m-traf')">+ إضافة يدوياً</button>
+          </div>
+        </div>
+        <div id="traf-wrap"></div>
+      </div>
     </div>
 
     <!-- LEAVES -->
@@ -1187,23 +1196,64 @@ function saveScanIq(){
 
 // Import attendance PDF
 function importAttendance(input){
-  const file=input.files[0];if(!file)return;
-  const reader=new FileReader();
-  reader.onload=function(ev){
-    const src=ev.target.result;
-    const isImg=file.type.startsWith('image/');
-    const empsOpts=db.employees.filter(e=>e.status!=='منتهي').map(e=>'<option value="'+e.id+'">'+e.name+'</option>').join('');
-    const modal=document.createElement('div');
-    modal.id='att-pdf-modal';
-    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto';
-    modal.innerHTML='<div style="background:rgba(10,5,30,0.98);border:1px solid rgba(255,255,255,.15);border-radius:18px;width:820px;max-width:95vw;overflow:hidden;margin:auto"><div style="background:rgba(245,200,66,0.1);padding:1.1rem 1.25rem;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:center"><span style="font-size:14px;font-weight:700;color:var(--gold)">📄 استيراد بيانات الحضور وحساب الراتب</span><button class="btn sm red" onclick="document.getElementById(\'att-pdf-modal\').remove()">✕</button></div><div style="display:grid;grid-template-columns:1fr 1fr"><div style="padding:1.1rem;border-left:1px solid rgba(255,255,255,.07);max-height:75vh;overflow-y:auto">'+(isImg?'<img src="'+src+'" style="width:100%;border-radius:8px;border:1px solid rgba(255,255,255,.1)"/>':'<div style="padding:2rem;background:rgba(255,255,255,.04);border-radius:8px;text-align:center;color:rgba(255,255,255,.4)">📄 '+file.name+'<br><span style="font-size:11px">راجع الملف وأدخل البيانات يدوياً</span></div>')+'</div><div style="padding:1.1rem;display:flex;flex-direction:column;gap:9px"><div class="fg"><label>الموظف</label><select id="ap-emp" style="padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r);background:rgba(255,255,255,.07);color:#fff;font-family:Cairo,sans-serif">'+empsOpts+'</select></div><div class="fg"><label>الشهر</label><select id="ap-mn" style="padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r);background:rgba(255,255,255,.07);color:#fff;font-family:Cairo,sans-serif"><option value="0">يناير</option><option value="1">فبراير</option><option value="2">مارس</option><option value="3">أبريل</option><option value="4">مايو</option><option value="5">يونيو</option><option value="6">يوليو</option><option value="7">أغسطس</option><option value="8">سبتمبر</option><option value="9">أكتوبر</option><option value="10">نوفمبر</option><option value="11">ديسمبر</option></select></div><div class="fg"><label>السنة</label><select id="ap-yr" style="padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r);background:rgba(255,255,255,.07);color:#fff;font-family:Cairo,sans-serif"><option>2024</option><option>2025</option><option selected>2026</option><option>2027</option></select></div><div class="fg"><label>أيام العمل في الشهر</label><input id="ap-wd" type="number" value="26" min="1" max="31" style="padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r);background:rgba(255,255,255,.07);color:#fff;font-family:Cairo,sans-serif"></div><div class="fg"><label>عدد أيام الغياب</label><input id="ap-ab" type="number" value="0" min="0" style="padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r);background:rgba(255,255,255,.07);color:#fff;font-family:Cairo,sans-serif" oninput="calcAP()"></div><div class="fg"><label>تواريخ الغياب (مثال: 5، 12، 20)</label><input id="ap-dates" placeholder="اختياري" style="padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r);background:rgba(255,255,255,.07);color:#fff;font-family:Cairo,sans-serif"></div><div class="fg"><label>إجمالي دقائق التأخير</label><input id="ap-lm" type="number" value="0" min="0" style="padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r);background:rgba(255,255,255,.07);color:#fff;font-family:Cairo,sans-serif" oninput="calcAP()"></div><div id="ap-result" style="background:rgba(245,200,66,0.07);border:1px solid rgba(245,200,66,0.2);border-radius:9px;padding:11px;display:none;font-size:12px"></div><button class="btn blu" style="width:100%;justify-content:center" onclick="calcAP()">🔢 احسب الراتب</button><button class="btn gold" style="width:100%;justify-content:center" onclick="saveAP()">✓ حفظ وتطبيق</button></div></div></div>';
-    document.body.appendChild(modal);
-    document.getElementById('ap-mn').value=new Date().getMonth();
-    calcAP();
-  };
-  reader.readAsDataURL(file);
+  const file = input.files[0]; if(!file) return;
+  // Redirect to the AI attendance analysis which handles ALL employees
+  document.getElementById('att-report-ai').click = null;
+  // Use same AI flow as salary page
+  const apiKey = getApiKey();
+  if(!apiKey){ ntf('❌ أدخل API Key في الإعدادات أولاً'); input.value=''; return; }
+  ntf('🤖 جاري تحليل كشف الحضور...');
+
+  fileToBase64(file).then(function(b64){
+    const empList = db.employees.filter(function(e){return e.status==='نشط';}).map(function(e){
+      return e.name + ' (راتب: ' + ((+e.salary||0)+(+e.housing||0)+(+e.transport||0)) + ' ريال)';
+    }).join(' | ');
+
+    const prompt = `أنت محلل رواتب خبير. لديك كشف حضور موظفين.
+
+قائمة موظفي الشركة:
+${empList}
+
+تعليمات مهمة جداً:
+- الجدول يحتوي على: اسم الموظف | عدد أيام الحضور | التواريخ
+- العمود الأخير على اليمين هو اسم الموظف
+- العمود الأخضر الوسط هو عدد أيام الحضور (مثل "1 يوم" أو "2 يوم")
+- العمود الأيسر هو التواريخ
+- استخرج لكل موظف عدد أيام حضوره الفعلي
+- أيام الغياب = إجمالي أيام العمل - أيام الحضور
+- افترض إجمالي أيام العمل = 26 يوم
+
+أرجع JSON فقط بهذا الشكل:
+{
+  "month": "مايو",
+  "year": 2026,
+  "work_days": 26,
+  "employees": [
+    {
+      "name": "اسم الموظف مطابق لقائمة الشركة",
+      "present_days": 25,
+      "absent_days": 1,
+      "late_minutes": 0,
+      "notes": ""
+    }
+  ]
+}`;
+
+    return callClaudeWithFile(file, prompt);
+  }).then(function(result){
+    const data = parseJSON(result);
+    if(!data || !data.employees){ ntf('❌ لم يتمكن AI من قراءة الكشف'); return; }
+    // Update sal-month to match
+    const mn = parseInt(document.getElementById('sm').value);
+    const yr = parseInt(document.getElementById('sy').value);
+    showAttendanceModal(data, file);
+  }).catch(function(e){
+    ntf('❌ خطأ: ' + e.message);
+  });
   input.value='';
 }
+
+
 
 function calcAP(){
   const empId=document.getElementById('ap-emp')?.value;if(!empId)return;
@@ -1816,26 +1866,37 @@ async function aiAnalyzeAttendance(input){
       e.name + ' (راتب: ' + ((+e.salary||0)+(+e.housing||0)+(+e.transport||0)) + ' ريال)'
     ).join(' | ');
     
-    const prompt = `أنت محلل رواتب. لدي تقرير حضور موظفين.
-قائمة الموظفين: ${empList}
+    const prompt = `أنت محلل رواتب خبير. لديك كشف حضور موظفين.
 
-حلل تقرير الحضور واستخرج لكل موظف عدد أيام الحضور والغياب والتأخير.
-أرجع JSON فقط بهذا الشكل:
+قائمة موظفي الشركة:
+${empList}
+
+تعليمات مهمة جداً:
+- الجدول يحتوي على: اسم الموظف | عدد أيام الحضور | التواريخ
+- العمود الأخير على اليمين هو اسم الموظف
+- العمود الأخضر الوسط هو عدد أيام الحضور (مثل "1 يوم" أو "2 يوم")
+- العمود الأيسر هو التواريخ
+- استخرج لكل موظف عدد أيام حضوره الفعلي من العمود الأخضر
+- أيام الغياب = إجمالي أيام العمل في الشهر - أيام الحضور
+- افترض إجمالي أيام العمل = 26 يوم إلا إذا كان محدداً
+
+قارن أسماء الموظفين في الكشف مع قائمة موظفي الشركة وطابقها.
+
+أرجع JSON فقط بهذا الشكل بدون أي نص آخر:
 {
-  "month": "اسم الشهر",
+  "month": "مايو",
   "year": 2026,
   "work_days": 26,
   "employees": [
     {
-      "name": "اسم الموظف كما في القائمة",
+      "name": "اسم الموظف مطابق لقائمة الشركة",
       "present_days": 25,
       "absent_days": 1,
-      "late_minutes": 30,
-      "notes": "أي ملاحظات"
+      "late_minutes": 0,
+      "notes": "ملاحظات إن وجدت"
     }
   ]
-}
-مهم: اسم الموظف يجب أن يطابق القائمة أعلاه بالضبط.`;
+}`;
 
     const result = await callClaudeWithFile(file, prompt);
     const data = parseJSON(result);
@@ -1929,8 +1990,8 @@ function showAttendanceModal(data, file){
             <thead style="position:sticky;top:0;background:rgba(10,5,30,0.98)">
               <tr>
                 <th style="text-align:right;padding:10px;border-bottom:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5)">الموظف</th>
-                <th style="text-align:center;padding:10px;border-bottom:1px solid rgba(255,255,255,.1);color:#34d399">حضر</th>
-                <th style="text-align:center;padding:10px;border-bottom:1px solid rgba(255,255,255,.1);color:#f87171">غاب</th>
+                <th style="text-align:center;padding:10px;border-bottom:1px solid rgba(255,255,255,.1);color:#34d399">أيام الحضور</th>
+                <th style="text-align:center;padding:10px;border-bottom:1px solid rgba(255,255,255,.1);color:#f87171">أيام الغياب</th>
                 <th style="text-align:center;padding:10px;border-bottom:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5)">تأخير</th>
                 <th style="text-align:right;padding:10px;border-bottom:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.5)">الإجمالي</th>
                 <th style="text-align:right;padding:10px;border-bottom:1px solid rgba(255,255,255,.1);color:#f87171">خصم غياب</th>
@@ -1964,11 +2025,14 @@ function showAttendanceModal(data, file){
   reader.readAsDataURL(file);
 }
 
+function doApplyAll(){
+  applyAttendance(window._attMatched, window._attMonth, window._attYear);
+}
 function applyAttendance(matched, mn, yr){
   const workDays = window._attWorkDays || 26;
   const lateRate = db.settings.lateRate || 50;
   let count = 0;
-  
+
   (window._attMatched || matched).forEach(function(item){
     if(!item.emp) return;
     const ds = yr + '-' + String(mn+1).padStart(2,'0') + '-15';
@@ -1976,7 +2040,7 @@ function applyAttendance(matched, mn, yr){
     const dailyRate = gross / workDays;
     const absentDed = Math.round(dailyRate * (item.rec.absent_days||0));
     const lateDed = Math.round(((item.rec.late_minutes||0)/60) * lateRate);
-    
+
     if(absentDed > 0){
       db.deductions.push({id:uid(), empId:item.emp.id, type:'غياب',
         date:ds, amount:String(absentDed),
@@ -1990,10 +2054,10 @@ function applyAttendance(matched, mn, yr){
       count++;
     }
   });
-  
+
   save(); renderAll();
   document.getElementById('att-ai-modal').remove();
-  ntf('✅ تم تطبيق بيانات الحضور على ' + (window._attMatched||matched).filter(x=>x.emp).length + ' موظف');
+  ntf('✅ تم تطبيق بيانات الحضور على ' + (window._attMatched||matched).filter(function(x){return x.emp;}).length + ' موظف');
 }
 
 
@@ -2336,6 +2400,235 @@ function saveAiVehicle(){
   });
   save(); renderVeh(); closeAiVeh();
   ntf('✅ تم إضافة السيارة بنجاح!');
+}
+
+
+// ── AI TRAFFIC VIOLATION SCAN ──
+async function aiScanTraffic(input){
+  const file = input.files[0]; if(!file) return;
+  input.value = '';
+  const apiKey = getApiKey();
+  if(!apiKey){ ntf('❌ أدخل API Key في الإعدادات أولاً'); return; }
+  ntf('🤖 جاري قراءة المخالفة المرورية...');
+
+  try {
+    // Build context for AI
+    const plateList = db.vehicles.map(function(v){
+      return v.plate + (v.type?' ('+v.type+')':'') + (v.empId?' — '+en(v.empId):'');
+    }).join(' | ');
+
+    const empList = db.employees.filter(function(e){return e.status!=='منتهي';})
+      .map(function(e){return e.name;}).join(' | ');
+
+    const prompt = `أنت خبير في قراءة مخالفات المرور السعودية.
+اقرأ هذه المخالفة المرورية واستخرج بياناتها.
+
+سيارات الشركة المسجلة: ${plateList||'لا يوجد'}
+موظفو الشركة: ${empList||'لا يوجد'}
+
+استخرج المعلومات التالية:
+أرجع JSON فقط بهذا الشكل:
+{
+  "plate": "رقم اللوحة",
+  "violation_type": "نوع المخالفة مثل تجاوز السرعة أو قطع إشارة أو وقوف خاطئ",
+  "amount": "مبلغ المخالفة رقم فقط",
+  "fine": "مبلغ الغرامة الإضافية رقم فقط أو 0",
+  "total": "إجمالي المبلغ رقم فقط",
+  "date": "تاريخ المخالفة YYYY-MM-DD",
+  "location": "مكان المخالفة إن وجد",
+  "officer": "رقم الضابط أو اسمه إن وجد",
+  "violation_no": "رقم المخالفة إن وجد",
+  "matched_plate": "رقم اللوحة المطابق من قائمة سيارات الشركة أو null",
+  "matched_employee": "اسم الموظف المطابق من قائمة الشركة أو null",
+  "speed": "السرعة المسجلة إن كانت مخالفة سرعة أو null",
+  "speed_limit": "الحد المسموح به إن وجد أو null"
+}
+إذا لم تجد قيمة اكتب null.`;
+
+    const result = await callClaudeWithFile(file, prompt);
+    const data = parseJSON(result);
+    if(!data){ ntf('❌ لم يتمكن AI من قراءة المخالفة'); return; }
+    showAiTrafficModal(data, file);
+  } catch(e){
+    ntf('❌ خطأ: ' + e.message);
+  }
+}
+
+function showAiTrafficModal(data, file){
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    const src = ev.target.result;
+    const isImg = file.type.startsWith('image');
+
+    // Find matching vehicle
+    let matchedVeh = null;
+    if(data.matched_plate || data.plate){
+      matchedVeh = db.vehicles.find(function(v){
+        return v.plate === (data.matched_plate || data.plate);
+      });
+    }
+
+    // Find matching employee
+    let matchedEmpId = '';
+    if(matchedVeh && matchedVeh.empId){
+      matchedEmpId = matchedVeh.empId;
+    } else if(data.matched_employee){
+      const emp = db.employees.find(function(e){
+        return e.name === data.matched_employee || e.name.includes(data.matched_employee.split(' ')[0]);
+      });
+      if(emp) matchedEmpId = emp.id;
+    }
+
+    const empsOpts = '<option value="">— اختر موظفاً —</option>' +
+      db.employees.filter(function(e){return e.status!=='منتهي';}).map(function(e){
+        return '<option value="'+e.id+'"'+(e.id===matchedEmpId?' selected':'')+'>'+e.name+'</option>';
+      }).join('');
+
+    const platesOpts = '<option value="">— اختر لوحة —</option>' +
+      db.vehicles.map(function(v){
+        const sel = v.plate===(data.matched_plate||data.plate)?' selected':'';
+        return '<option value="'+v.plate+'"'+sel+'>'+v.plate+(v.type?' — '+v.type:'')+'</option>';
+      }).join('') +
+      '<option value="_other">أخرى (أدخل يدوياً)</option>';
+
+    const totalAmt = data.total || data.amount || 0;
+    const inpStyle = 'padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r);background:rgba(255,255,255,.07);color:#fff;font-family:Cairo,sans-serif;width:100%';
+    const selStyle = inpStyle;
+
+    const modal = document.createElement('div');
+    modal.id = 'ai-traf-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto';
+    modal.innerHTML =
+      '<div style="background:rgba(10,5,30,0.98);border:1px solid rgba(245,200,66,0.3);border-radius:18px;width:820px;max-width:95vw;overflow:hidden;margin:auto">'+
+      '<div style="background:linear-gradient(135deg,rgba(245,200,66,0.2),rgba(245,200,66,0.05));padding:1rem 1.5rem;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:center">'+
+      '<span style="font-size:14px;font-weight:700;color:var(--gold)">🚗 بيانات المخالفة المرورية — راجع وأكمل</span>'+
+      '<button class="btn sm red" onclick="closeAiTraf()">✕</button></div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0">'+
+      '<div style="padding:1rem;border-left:1px solid rgba(255,255,255,.07);max-height:75vh;overflow-y:auto">'+
+      (isImg?'<img src="'+src+'" style="width:100%;border-radius:8px;border:1px solid rgba(255,255,255,.1);max-height:350px;object-fit:contain;background:rgba(0,0,0,.3)"/>':'<div style="padding:2rem;text-align:center;color:rgba(255,255,255,.4);background:rgba(255,255,255,.04);border-radius:8px"><div style="font-size:40px;margin-bottom:8px">📄</div>'+file.name+'</div>')+
+      (data.speed?'<div style="margin-top:10px;padding:10px;background:rgba(248,113,113,0.15);border:1px solid rgba(248,113,113,0.3);border-radius:8px;text-align:center"><div style="font-size:11px;color:rgba(255,255,255,.5)">السرعة المسجلة</div><div style="font-size:28px;font-weight:800;color:#f87171">'+data.speed+' كم/س</div>'+(data.speed_limit?'<div style="font-size:11px;color:rgba(255,255,255,.4)">الحد المسموح: '+data.speed_limit+' كم/س</div>':'')+'</div>':'')+
+      (data.location?'<div style="margin-top:8px;padding:8px 10px;background:rgba(255,255,255,.04);border-radius:8px;font-size:11px;color:rgba(255,255,255,.5)">📍 '+data.location+'</div>':'')+
+      (data.violation_no?'<div style="margin-top:6px;padding:6px 10px;font-size:11px;color:rgba(255,255,255,.4)">رقم المخالفة: '+data.violation_no+'</div>':'')+
+      '</div>'+
+      '<div style="padding:1rem;display:flex;flex-direction:column;gap:9px;overflow-y:auto;max-height:75vh">'+
+      '<div style="padding:8px 10px;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);border-radius:8px;font-size:11px;color:#34d399">✅ قرأ AI المخالفة — راجع البيانات</div>'+
+
+      '<div class="fg"><label>رقم اللوحة</label><select id="atraf-plate" style="'+selStyle+'">'+platesOpts+'</select></div>'+
+      '<div id="atraf-plate-custom" style="display:none"><input id="atraf-plate-txt" placeholder="أدخل رقم اللوحة" style="'+inpStyle+'"></div>'+
+
+      '<div class="fg"><label>الموظف المسؤول</label><select id="atraf-emp" style="'+selStyle+'">'+empsOpts+'</select></div>'+
+
+      '<div class="fg"><label>نوع المخالفة</label>'+
+      '<select id="atraf-type" style="'+selStyle+'">'+
+      ['تجاوز السرعة','قطع إشارة','وقوف خاطئ','استخدام الجوال','أخرى'].map(function(t){
+        const sel = data.violation_type && data.violation_type.includes(t.replace('تجاوز السرعة','سرعة').replace('قطع إشارة','إشارة'))?'selected':'';
+        return '<option value="'+t+'" '+sel+'>'+t+'</option>';
+      }).join('')+'</select></div>'+
+
+      '<div class="fg"><label>تاريخ المخالفة</label><div id="dph-atraf-date"></div><input type="hidden" id="atraf-date" value="'+(data.date||'')+'"></div>'+
+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+      '<div class="fg"><label>مبلغ المخالفة</label><input id="atraf-amount" type="number" value="'+(data.amount||0)+'" style="'+inpStyle+'"></div>'+
+      '<div class="fg"><label>الغرامة الإضافية</label><input id="atraf-fine" type="number" value="'+(data.fine||0)+'" style="'+inpStyle+'" oninput="calcTrafTotal()"></div>'+
+      '</div>'+
+
+      '<div style="padding:10px;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.2);border-radius:8px">'+
+      '<div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:3px">إجمالي المبلغ</div>'+
+      '<div id="atraf-total-disp" style="font-size:22px;font-weight:800;color:#f87171">'+(totalAmt||0).toLocaleString('en-US')+' ريال</div>'+
+      '</div>'+
+
+      '<div class="fg"><label>التحمل</label>'+
+      '<select id="atraf-resp" style="'+selStyle+'">'+
+      '<option value="full">على الموظف كاملاً</option>'+
+      '<option value="half">مشتركة 50/50</option>'+
+      '<option value="co">على الشركة</option>'+
+      '</select></div>'+
+
+      '</div></div>'+
+      '<div style="padding:.85rem 1.5rem;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid rgba(255,255,255,.07)">'+
+      '<button class="btn" onclick="closeAiTraf()">إلغاء</button>'+
+      '<button class="btn gold" onclick="saveAiTraffic()">✓ حفظ المخالفة وتطبيق الخصم</button>'+
+      '</div></div>';
+
+    document.body.appendChild(modal);
+
+    // Init date input
+    setTimeout(function(){
+      const dph = document.getElementById('dph-atraf-date');
+      if(dph) dph.innerHTML = makeDateInput('atraf-date', data.date||'');
+
+      // Handle plate selection
+      const plateSel = document.getElementById('atraf-plate');
+      if(plateSel){
+        plateSel.addEventListener('change', function(){
+          const custom = document.getElementById('atraf-plate-custom');
+          if(this.value === '_other'){
+            custom.style.display='block';
+          } else {
+            custom.style.display='none';
+            // Auto-fill employee from vehicle
+            const v = db.vehicles.find(function(vv){return vv.plate===plateSel.value;});
+            if(v && v.empId){ document.getElementById('atraf-emp').value = v.empId; }
+          }
+        });
+      }
+    }, 50);
+  };
+  reader.readAsDataURL(file);
+}
+
+function calcTrafTotal(){
+  const amt = parseFloat(document.getElementById('atraf-amount')?.value)||0;
+  const fine = parseFloat(document.getElementById('atraf-fine')?.value)||0;
+  const total = amt + fine;
+  const disp = document.getElementById('atraf-total-disp');
+  if(disp) disp.textContent = total.toLocaleString('en-US') + ' ريال';
+}
+
+function closeAiTraf(){
+  const m = document.getElementById('ai-traf-modal');
+  if(m) m.remove();
+}
+
+function saveAiTraffic(){
+  const plateSel = document.getElementById('atraf-plate');
+  let plate = plateSel ? plateSel.value : '';
+  if(plate === '_other'){
+    plate = document.getElementById('atraf-plate-txt')?.value || '';
+  }
+  if(!plate){ alert('أدخل رقم اللوحة'); return; }
+
+  const empId = document.getElementById('atraf-emp')?.value || '';
+  const type = document.getElementById('atraf-type')?.value || 'أخرى';
+  const date = getDateVal('atraf-date');
+  const amount = parseFloat(document.getElementById('atraf-amount')?.value)||0;
+  const fine = parseFloat(document.getElementById('atraf-fine')?.value)||0;
+  const total = amount + fine;
+  const resp = document.getElementById('atraf-resp')?.value || 'full';
+
+  // Add to traffic
+  db.traffic.push({
+    id: uid(), empId, plate, type, date,
+    amount: String(total), resp,
+    notes: 'قُرئت بالذكاء الاصطناعي'+(fine>0?' (غرامة: '+fine+')':'')
+  });
+
+  // Apply deduction based on responsibility
+  let empDed = 0;
+  if(resp === 'full') empDed = total;
+  else if(resp === 'half') empDed = Math.round(total/2);
+
+  if(empId && empDed > 0){
+    db.deductions.push({
+      id: uid(), empId, type: 'مخالفة مرورية',
+      date: date || new Date().toISOString().split('T')[0],
+      amount: String(empDed),
+      reason: 'مخالفة '+type+' — لوحة '+plate+(fine>0?' (شامل الغرامة)':'')
+    });
+  }
+
+  save(); renderAll(); closeAiTraf();
+  ntf('✅ تم حفظ المخالفة' + (empDed>0?' وتطبيق خصم '+empDed.toLocaleString('en-US')+' على الموظف':''));
 }
 
 function closeVehTraf(){ const m=document.getElementById("veh-traf-modal"); if(m)m.remove(); }

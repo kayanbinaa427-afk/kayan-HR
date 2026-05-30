@@ -990,12 +990,134 @@ function printRec(empId,m,y){
   const yr=y!==undefined?y:now.getFullYear();
   const r=getSal(empId,mn,yr);if(!r){alert('لا يوجد بيانات');return;}
   const e=r.e;
-  const ds=now.toLocaleDateString('ar-SA',{year:'numeric',month:'long',day:'numeric'});
-  const html='<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet"><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Cairo,Arial,sans-serif;background:#f5f0e8;display:flex;justify-content:center;padding:20px}.r{width:680px;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.15)}.hd{background:linear-gradient(135deg,#1a1200,#3d2d00);color:#f5c842;padding:18px 22px;display:flex;align-items:center;gap:14px}.ico{font-size:36px}.hi{flex:1;text-align:center}.hi h1{font-size:17px;margin-bottom:3px}.hi p{font-size:10px;opacity:.7}.hn{font-size:10px;opacity:.7;text-align:left}.rb{background:#f5c842;color:#1a1200;text-align:center;padding:7px;font-size:13px;font-weight:700}.bd{padding:20px}.ib{display:grid;grid-template-columns:1fr 1fr;gap:10px;background:#faf5e8;border:1px solid #e8d5a0;border-radius:7px;padding:14px;margin-bottom:18px}.ir .lb{font-size:10px;color:#888;margin-bottom:2px}.ir .vl{font-size:12px;font-weight:700;color:#1a1200}table{width:100%;border-collapse:collapse;margin-bottom:20px}th{background:#1a1200;color:#f5c842;padding:8px 12px;font-size:11px;text-align:right}td{padding:8px 12px;font-size:12px;border-bottom:1px solid #f0e8d0}.tot td{background:#faf5e8;font-weight:700;font-size:14px;color:#1a1200}.sg{display:grid;grid-template-columns:1fr 1fr;gap:50px;padding-top:18px;border-top:1px dashed #ccc}.sb{text-align:center}.sl{height:45px;border-bottom:1px solid #333;margin-bottom:5px}.slb{font-size:10px;color:#666}.ft{background:#faf5e8;padding:8px;text-align:center;font-size:10px;color:#999;border-top:1px solid #e8d5a0}</style></head><body onload="window.print()"><div class="r"><div class="hd"><div class="ico">🏗️</div><div class="hi"><h1>شركة كيان وبناء للمقاولات</h1><p>إيصال استلام راتب</p></div><div class="hn">رقم: '+Math.floor(Math.random()*9000+1000)+'<br>'+ds+'</div></div><div class="rb">إيصال راتب شهر '+MN[mn]+' '+yr+'</div><div class="bd"><div class="ib"><div class="ir"><div class="lb">اسم الموظف</div><div class="vl">'+e.name+'</div></div><div class="ir"><div class="lb">المسمى الوظيفي</div><div class="vl">'+(e.title||'—')+'</div></div><div class="ir"><div class="lb">القسم</div><div class="vl">'+(e.dept||'—')+'</div></div><div class="ir"><div class="lb">رقم الهوية</div><div class="vl">'+(e.idno||'—')+'</div></div><div class="ir"><div class="lb">رقم التأمينات</div><div class="vl">'+(e.insurance||'—')+'</div></div><div class="ir"><div class="lb">طريقة الصرف</div><div class="vl">'+(e.pay==='bank'?'تحويل بنكي: '+(e.bank||'—'):'كاش')+'</div></div></div><table><tr><th>البيان</th><th>المبلغ (ريال)</th></tr><tr><td>الراتب الأساسي</td><td>'+fmt(e.salary)+'</td></tr><tr><td>بدل السكن</td><td>'+fmt(e.housing)+'</td></tr><tr><td>بدل النقل</td><td>'+fmt(e.transport)+'</td></tr><tr><td style="color:#c0392b">الخصومات والجزاءات</td><td style="color:#c0392b">( '+fmt(r.ded)+' )</td></tr><tr><td style="color:#27ae60">المكافآت والحوافز</td><td style="color:#27ae60">'+fmt(r.bon)+'</td></tr><tr class="tot"><td>✅ صافي الراتب المستحق</td><td style="font-size:16px;color:#b8860b">'+fmt(r.net)+' ريال</td></tr></table><div class="sg"><div class="sb"><div class="sl"></div><div class="slb">توقيع الموظف — أقر باستلام المبلغ كاملاً</div></div><div class="sb"><div class="sl"></div><div class="slb">توقيع المسؤول المالي</div></div></div></div><div class="ft">شركة كيان وبناء للمقاولات — وثيقة رسمية معتمدة</div></div></body></html>';
-  const w=window.open('','_blank','width=750,height=680');w.document.write(html);w.document.close();
+  const ds=now.toLocaleDateString('ar-SA',{day:'numeric',month:'long',year:'numeric'});
+
+  // Get loans deductions for this employee this month
+  const loanDeds = db.deductions.filter(function(d){
+    if(d.empId!==empId || d.type!=='قسط سلفة') return false;
+    if(!d.date) return false;
+    const dd2=new Date(d.date);
+    return dd2.getMonth()===mn && dd2.getFullYear()===yr;
+  });
+  const loanTotal = loanDeds.reduce(function(a,d){return a+(+d.amount||0);},0);
+
+  // Get regular deductions (excluding loan installments)
+  const regDeds = db.deductions.filter(function(d){
+    if(d.empId!==empId || d.type==='قسط سلفة') return false;
+    if(!d.date) return false;
+    const dd2=new Date(d.date);
+    return dd2.getMonth()===mn && dd2.getFullYear()===yr;
+  });
+  const regDedTotal = regDeds.reduce(function(a,d){return a+(+d.amount||0);},0);
+
+  // Attendance deductions
+  const attDeds = db.attendance.filter(function(a){
+    if(a.empId!==empId) return false;
+    if(!a.date) return false;
+    const dd2=new Date(a.date);
+    return dd2.getMonth()===mn && dd2.getFullYear()===yr;
+  });
+  const attDedTotal = attDeds.reduce(function(a,x){return a+(+x.deduct||0);},0);
+
+  // Traffic deductions
+  const traffDeds = db.traffic.filter(function(t){
+    if(t.empId!==empId) return false;
+    if(!t.date) return false;
+    const dd2=new Date(t.date);
+    return dd2.getMonth()===mn && dd2.getFullYear()===yr;
+  });
+  const traffDedTotal = traffDeds.reduce(function(a,t){
+    return a+(t.resp==='full'?+t.amount:t.resp==='half'?Math.round(+t.amount/2):0);
+  },0);
+
+  // Bonuses
+  const bons = db.bonuses.filter(function(b){
+    if(b.empId!==empId) return false;
+    if(!b.date) return false;
+    const dd2=new Date(b.date);
+    return dd2.getMonth()===mn && dd2.getFullYear()===yr;
+  });
+  const bonTotal = bons.reduce(function(a,b){return a+(+b.amount||0);},0);
+
+  const gross=(+e.salary||0)+(+e.housing||0)+(+e.transport||0);
+  const totalDed=regDedTotal+attDedTotal+traffDedTotal+loanTotal;
+  const net=gross-totalDed+bonTotal;
+
+  const html2=`<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Cairo,Arial,sans-serif;background:#f5f0e8;display:flex;justify-content:center;padding:20px}
+.r{width:700px;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.15)}
+.hd{background:linear-gradient(135deg,#1a1200,#3d2d00);color:#f5c842;padding:18px 24px;text-align:center}
+.hd h1{font-size:18px;margin-bottom:4px}
+.hd p{font-size:11px;opacity:.7}
+.rb{background:#f5c842;color:#1a1200;text-align:center;padding:7px;font-size:13px;font-weight:700;display:flex;justify-content:space-between;padding:8px 20px}
+.bd{padding:20px}
+.ib{display:grid;grid-template-columns:1fr 1fr;gap:10px;background:#faf5e8;border:1px solid #e8d5a0;border-radius:7px;padding:14px;margin-bottom:18px}
+.ir .lb{font-size:10px;color:#888;margin-bottom:2px}
+.ir .vl{font-size:12px;font-weight:700;color:#1a1200}
+table{width:100%;border-collapse:collapse;margin-bottom:16px}
+th{background:#1a1200;color:#f5c842;padding:8px 12px;font-size:11px;text-align:right}
+td{padding:8px 12px;font-size:12px;border-bottom:1px solid #f0e8d0}
+.sec-title{background:#f0e8d0;padding:6px 12px;font-size:11px;font-weight:700;color:#5a3d00}
+.tot td{background:#1a1200;color:#f5c842;font-weight:700;font-size:14px}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:50px;padding-top:18px;border-top:1px dashed #ccc;margin-top:16px}
+.sb{text-align:center}
+.sl{height:45px;border-bottom:1px solid #333;margin-bottom:5px}
+.slb{font-size:10px;color:#666}
+.ft{background:#faf5e8;padding:8px;text-align:center;font-size:10px;color:#999;border-top:1px solid #e8d5a0}
+</style></head>
+<body onload="window.print()">
+<div class="r">
+  <div class="hd">
+    <h1>شركة كيان وبناء للمقاولات</h1>
+    <p>نظام إدارة الموارد البشرية</p>
+  </div>
+  <div class="rb">
+    <span>إيصال راتب — ${MN[mn]} ${yr}</span>
+    <span>رقم: ${Math.floor(Math.random()*9000+1000)} | ${ds}</span>
+  </div>
+  <div class="bd">
+    <div class="ib">
+      <div class="ir"><div class="lb">اسم الموظف</div><div class="vl">${e.name}</div></div>
+      <div class="ir"><div class="lb">المسمى الوظيفي</div><div class="vl">${e.title||'—'}</div></div>
+      <div class="ir"><div class="lb">القسم</div><div class="vl">${e.dept||'—'}</div></div>
+      <div class="ir"><div class="lb">رقم الهوية</div><div class="vl">${e.idno||'—'}</div></div>
+      <div class="ir"><div class="lb">رقم التأمينات</div><div class="vl">${e.insurance||'—'}</div></div>
+      <div class="ir"><div class="lb">طريقة الصرف</div><div class="vl">${e.pay==='bank'?'تحويل بنكي: '+(e.bank||'—'):'كاش'}</div></div>
+    </div>
+
+    <table>
+      <tr><th colspan="2">المستحقات</th></tr>
+      <tr><td>الراتب الأساسي</td><td>${(+e.salary||0).toLocaleString('en-US')}</td></tr>
+      <tr><td>بدل السكن</td><td>${(+e.housing||0).toLocaleString('en-US')}</td></tr>
+      <tr><td>بدل النقل</td><td>${(+e.transport||0).toLocaleString('en-US')}</td></tr>
+      ${bonTotal>0?'<tr class="sec-title"><td colspan="2">المكافآت والحوافز</td></tr>'+bons.map(function(b){return'<tr><td style="color:#27ae60">'+b.reason+'</td><td style="color:#27ae60">'+( +b.amount||0).toLocaleString("en-US")+'</td></tr>';}).join(''):''}
+      ${(regDedTotal+attDedTotal+traffDedTotal)>0?'<tr class="sec-title"><td colspan="2">الخصومات</td></tr>'+
+        regDeds.map(function(d){return'<tr><td style="color:#c0392b">'+d.reason+'</td><td style="color:#c0392b">( '+(+d.amount||0).toLocaleString("en-US")+' )</td></tr>';}).join('')+
+        attDeds.filter(function(a){return +a.deduct>0;}).map(function(a){return'<tr><td style="color:#c0392b">خصم تأخير</td><td style="color:#c0392b">( '+(+a.deduct||0).toLocaleString("en-US")+' )</td></tr>';}).join('')+
+        traffDeds.filter(function(t){return t.resp!=="co";}).map(function(t){return'<tr><td style="color:#c0392b">مخالفة مرورية — '+t.type+'</td><td style="color:#c0392b">( '+(t.resp==="full"?+t.amount:Math.round(+t.amount/2)||0).toLocaleString("en-US")+' )</td></tr>';}).join('')
+        :''}
+      ${loanTotal>0?'<tr class="sec-title"><td colspan="2">السلف</td></tr>'+loanDeds.map(function(d){return'<tr><td style="color:#8e44ad">'+d.reason+'</td><td style="color:#8e44ad">( '+(+d.amount||0).toLocaleString("en-US")+' )</td></tr>';}).join(''):''}
+      <tr class="tot"><td>✅ صافي الراتب المستحق</td><td style="font-size:16px">${net.toLocaleString('en-US')} ريال</td></tr>
+    </table>
+
+    <div class="sg">
+      <div class="sb"><div class="sl"></div><div class="slb">توقيع الموظف — أقر باستلام المبلغ كاملاً</div></div>
+      <div class="sb"><div class="sl"></div><div class="slb">توقيع المسؤول المالي</div></div>
+    </div>
+  </div>
+  <div class="ft">شركة كيان وبناء للمقاولات — وثيقة رسمية معتمدة</div>
+</div>
+</body></html>`;
+
+  const w=window.open('','_blank','width=750,height=780');
+  w.document.write(html2);
+  w.document.close();
 }
 
-// Print salary report
+
 function printSalReport(){
   const m=parseInt(document.getElementById('sm').value);
   const y=parseInt(document.getElementById('sy').value);

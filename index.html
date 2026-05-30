@@ -125,6 +125,7 @@ tr:hover td{background:rgba(255,255,255,0.03)}
   </div>
 </div>
 
+<div class="mob-overlay" id="mob-overlay" onclick="closeMobSB()"></div>
 <button class="toggle-btn" id="tbtn" onclick="toggleSB()" style="right:calc(var(--sw) - 12px)">◀</button>
 
 <div class="main" id="mn">
@@ -132,7 +133,7 @@ tr:hover td{background:rgba(255,255,255,0.03)}
     <span class="topbar-title" id="ptitle">لوحة التحكم</span>
     <div style="display:flex;align-items:center;gap:10px">
       <span id="sync-lbl" style="font-size:11px;color:rgba(52,211,153,0.7)">☁️ Firebase</span>
-      <span id="datelbl" style="font-size:11px;color:rgba(255,255,255,0.3)"></span>
+      <span id="datelbl" style="font-size:11px;color:rgba(255,255,255,0.3)" class="hide-on-mobile"></span>
     </div>
   </div>
   <div class="content">
@@ -623,15 +624,43 @@ function ntf(m){const n=document.getElementById('notif');n.textContent=m;n.class
 
 // Sidebar toggle
 let sbOpen=true;
+function isMobile(){ return window.innerWidth <= 768; }
+
 function toggleSB(){
-  sbOpen=!sbOpen;
   const sb=document.getElementById('sb');
   const mn=document.getElementById('mn');
   const tb=document.getElementById('tbtn');
-  sb.classList.toggle('hide',!sbOpen);
-  mn.classList.toggle('wide',!sbOpen);
-  tb.textContent=sbOpen?'◀':'▶';
-  tb.style.right=sbOpen?'calc(var(--sw) - 12px)':'40px';
+  const overlay=document.getElementById('mob-overlay');
+  if(isMobile()){
+    const isOpen = sb.classList.contains('mob-open');
+    if(isOpen){
+      sb.classList.remove('mob-open');
+      if(overlay) overlay.classList.remove('show');
+      tb.textContent='☰';
+      tb.style.right='10px';
+    } else {
+      sb.classList.add('mob-open');
+      if(overlay) overlay.classList.add('show');
+      tb.textContent='✕';
+      tb.style.right='272px';
+    }
+  } else {
+    sbOpen=!sbOpen;
+    sb.classList.toggle('hide',!sbOpen);
+    mn.classList.toggle('wide',!sbOpen);
+    tb.textContent=sbOpen?'◀':'▶';
+    tb.style.right=sbOpen?'calc(var(--sw) - 12px)':'40px';
+  }
+}
+
+function closeMobSB(){
+  const sb=document.getElementById('sb');
+  const tb=document.getElementById('tbtn');
+  const overlay=document.getElementById('mob-overlay');
+  sb.classList.remove('mob-open');
+  if(overlay) overlay.classList.remove('show');
+  tb.textContent='☰';
+  tb.style.right='10px';
 }
 
 // Navigation
@@ -641,6 +670,7 @@ function go(page,btn){
   document.getElementById('page-'+page).classList.add('active');
   document.getElementById('ptitle').textContent=TITLES[page]||'';
   if(btn)btn.classList.add('active');
+  if(isMobile()) closeMobSB();
   if(page==='salaries'){document.getElementById('sm').value=new Date().getMonth();renderSal();}
   if(page==='report'){document.getElementById('rm').value=new Date().getMonth();renderRep();}
   if(page==='settings'){document.getElementById('set-co').value=db.settings.company||'';const k=localStorage.getItem('hr_api_key');if(k)document.getElementById('set-api').value=k;}
@@ -2642,7 +2672,7 @@ function delLoan(id){delIt('loans',id);}
 document.getElementById('datelbl').textContent=new Date().toLocaleDateString('ar-SA',{day:'numeric',month:'long',year:'numeric'});
 document.getElementById('sm').value=new Date().getMonth();
 document.getElementById('rm').value=new Date().getMonth();
-document.getElementById('tbtn').style.right='calc(var(--sw) - 12px)';
+if(isMobile()){ document.getElementById('tbtn').textContent='☰'; document.getElementById('tbtn').style.right='10px'; } else { document.getElementById('tbtn').style.right='calc(var(--sw) - 12px)'; }
 load();
 </script>
 </body>

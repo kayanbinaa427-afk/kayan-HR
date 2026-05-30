@@ -3,133 +3,155 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>نظام HR - إدارة الموارد البشرية</title>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<title>كيان وبناء للمقاولات - HR</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Cairo',sans-serif;direction:rtl;background:#f5f5f0;color:#1a1a1a}
-:root{--bg:#fff;--bg2:#f5f5f0;--bg3:#efefea;--border:rgba(0,0,0,0.1);--border2:rgba(0,0,0,0.2);--text:#1a1a1a;--text2:#666;--text3:#999;--info-bg:#e6f1fb;--info-text:#0c447c;--success-bg:#eaf3de;--success-text:#3b6d11;--warning-bg:#faeeda;--warning-text:#854f0b;--danger-bg:#fcebeb;--danger-text:#a32d2d;--r:8px;--rl:12px;--sw:220px}
+body{font-family:'Cairo',sans-serif;direction:rtl;min-height:100vh;background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);color:#fff}
+:root{--sw:195px;--gold:#f5c842;--r:10px;--rl:15px}
 .app{display:flex;min-height:100vh}
-.sidebar{width:var(--sw);background:var(--bg);border-left:0.5px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;position:fixed;top:0;right:0;bottom:0;overflow-y:auto;z-index:10}
-.logo{padding:1rem;border-bottom:0.5px solid var(--border)}
-.logo-title{font-size:15px;font-weight:700}
-.logo-sub{font-size:11px;color:var(--text2);margin-top:2px}
-.nav-sec{padding:.4rem 0;border-bottom:.5px solid var(--border)}
-.nav-lbl{font-size:10px;color:var(--text3);padding:0 .75rem;margin-bottom:2px;letter-spacing:.05em}
-.nav-btn{display:flex;align-items:center;gap:8px;padding:8px .75rem;font-size:12.5px;border:none;background:none;width:100%;text-align:right;cursor:pointer;color:var(--text2);transition:background .1s}
-.nav-btn:hover{background:var(--bg2);color:var(--text)}
-.nav-btn.active{background:var(--info-bg);color:var(--info-text);font-weight:600}
-.main{flex:1;margin-right:var(--sw);display:flex;flex-direction:column}
-.topbar{background:var(--bg);border-bottom:.5px solid var(--border);padding:.65rem 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5}
-.topbar-title{font-size:15px;font-weight:600}
-.content{padding:1.25rem;flex:1}
+.sidebar{width:var(--sw);background:rgba(15,10,40,0.6);backdrop-filter:blur(20px);border-left:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;position:fixed;top:0;right:0;bottom:0;overflow-y:auto;z-index:10;transition:width .3s}
+.sidebar.hide{width:52px}
+.sidebar.hide .hide-on-collapse{display:none}
+.sidebar.hide .nav-btn{justify-content:center;padding:9px 0}
+.sidebar.hide .nav-icon{margin:0}
+.logo-area{padding:.7rem .75rem;border-bottom:1px solid rgba(255,255,255,0.07);text-align:center}
+.logo-icon{font-size:26px}
+.logo-name{font-size:11px;font-weight:700;color:var(--gold);line-height:1.4;margin-top:3px}
+.nav-sec{padding:.15rem 0;border-bottom:1px solid rgba(255,255,255,0.04)}
+.nav-lbl{font-size:9px;color:rgba(255,255,255,0.3);padding:3px .75rem 1px;letter-spacing:.07em}
+.nav-btn{display:flex;align-items:center;gap:7px;padding:7px .75rem;font-size:12px;border:none;background:none;width:100%;text-align:right;cursor:pointer;color:rgba(255,255,255,0.6);font-family:'Cairo',sans-serif;transition:all .15s}
+.nav-btn:hover{background:rgba(255,255,255,0.07);color:#fff}
+.nav-btn.active{background:rgba(245,200,66,0.1);color:var(--gold);font-weight:700;border-right:2px solid var(--gold)}
+.nav-icon{font-size:15px;width:18px;flex-shrink:0;text-align:center}
+.sidebar-foot{margin-top:auto;padding:.5rem .75rem}
+.toggle-btn{position:fixed;top:.65rem;z-index:20;width:24px;height:24px;background:var(--gold);border:none;border-radius:50%;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;transition:right .3s;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.main{flex:1;margin-right:var(--sw);display:flex;flex-direction:column;transition:margin-right .3s;min-width:0}
+.main.wide{margin-right:52px}
+.topbar{background:rgba(255,255,255,0.05);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.08);padding:.6rem 1.25rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5}
+.topbar-title{font-size:15px;font-weight:700}
+.content{padding:1.25rem}
 .page{display:none}.page.active{display:block}
 .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.25rem}
-.metric{background:var(--bg3);border-radius:var(--r);padding:.85rem}
-.metric-lbl{font-size:11px;color:var(--text2);margin-bottom:3px}
-.metric-val{font-size:22px;font-weight:600}
-.metric-sub{font-size:10px;color:var(--text3);margin-top:2px}
-.card{background:var(--bg);border:.5px solid var(--border);border-radius:var(--rl);padding:.9rem 1.1rem;margin-bottom:1rem}
-.card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:.9rem}
-.card-title{font-size:13px;font-weight:600}
-.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;font-size:12px;border:.5px solid var(--border2);border-radius:var(--r);background:transparent;color:var(--text);cursor:pointer;font-family:'Cairo',sans-serif;font-weight:500;transition:background .1s}
-.btn:hover{background:var(--bg3)}
-.btn.primary{background:var(--info-bg);color:var(--info-text);border-color:transparent}
-.btn.danger{background:var(--danger-bg);color:var(--danger-text);border-color:transparent}
-.btn.success{background:var(--success-bg);color:var(--success-text);border-color:transparent}
+.metric{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:var(--rl);padding:.85rem;text-align:center;position:relative;overflow:hidden}
+.metric::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.metric-lbl{font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:3px}
+.metric-val{font-size:22px;font-weight:800}
+.metric-sub{font-size:10px;color:rgba(255,255,255,0.35);margin-top:2px}
+.card{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:var(--rl);padding:.9rem 1.1rem;margin-bottom:1rem}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:.85rem}
+.card-title{font-size:13px;font-weight:700}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;font-size:12px;border:1px solid rgba(255,255,255,0.15);border-radius:var(--r);background:rgba(255,255,255,0.07);color:#fff;cursor:pointer;font-family:'Cairo',sans-serif;font-weight:600;transition:all .15s}
+.btn:hover{background:rgba(255,255,255,0.13)}
+.btn.pri{background:rgba(245,200,66,0.15);color:var(--gold);border-color:rgba(245,200,66,0.3)}
+.btn.pri:hover{background:rgba(245,200,66,0.25)}
+.btn.red{background:rgba(248,113,113,0.15);color:#f87171;border-color:rgba(248,113,113,0.25)}
+.btn.grn{background:rgba(52,211,153,0.15);color:#34d399;border-color:rgba(52,211,153,0.25)}
+.btn.blu{background:rgba(96,165,250,0.15);color:#60a5fa;border-color:rgba(96,165,250,0.25)}
+.btn.gold{background:linear-gradient(135deg,#f5c842,#e8a800);color:#1a1200;border:none;font-weight:700}
+.btn.gold:hover{opacity:.9}
 .btn.sm{padding:3px 9px;font-size:11px}
 table{width:100%;border-collapse:collapse;font-size:12px}
-th{text-align:right;padding:7px 10px;font-weight:600;color:var(--text2);border-bottom:.5px solid var(--border);font-size:11px;white-space:nowrap}
-td{padding:9px 10px;border-bottom:.5px solid var(--border);white-space:nowrap}
-tr:hover td{background:var(--bg2)}
-.badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600}
-.bs{background:var(--success-bg);color:var(--success-text)}
-.bw{background:var(--warning-bg);color:var(--warning-text)}
-.bd{background:var(--danger-bg);color:var(--danger-text)}
-.bi{background:var(--info-bg);color:var(--info-text)}
-.bg{background:var(--bg3);color:var(--text2)}
-.av{width:30px;height:30px;border-radius:50%;background:var(--info-bg);color:var(--info-text);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
-.flex-c{display:flex;align-items:center;gap:7px}
-.alert{padding:8px 12px;border-radius:var(--r);font-size:12px;margin-bottom:8px;display:flex;align-items:center;gap:7px}
-.alert.d{background:var(--danger-bg);color:var(--danger-text)}
-.alert.w{background:var(--warning-bg);color:var(--warning-text)}
-.empty{text-align:center;padding:2rem;color:var(--text3);font-size:13px}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
-.sum-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:.5px solid var(--border);font-size:12px}
-.sum-row:last-child{border-bottom:none;font-weight:700;font-size:13px}
-/* Modal */
-.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;align-items:center;justify-content:center}
-.overlay.open{display:flex}
-.modal{background:var(--bg);border-radius:var(--rl);border:.5px solid var(--border);padding:1.25rem;width:540px;max-width:95vw;max-height:90vh;overflow-y:auto}
-.modal-title{font-size:14px;font-weight:700;margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+th{text-align:right;padding:7px 10px;font-weight:700;color:rgba(255,255,255,0.5);border-bottom:1px solid rgba(255,255,255,0.08);font-size:11px;white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid rgba(255,255,255,0.05);white-space:nowrap}
+tr:hover td{background:rgba(255,255,255,0.03)}
+.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700}
+.bs{background:rgba(52,211,153,0.15);color:#34d399}
+.bw{background:rgba(251,191,36,0.15);color:#fbbf24}
+.bd{background:rgba(248,113,113,0.15);color:#f87171}
+.bi{background:rgba(96,165,250,0.15);color:#60a5fa}
+.bg{background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.5)}
+.av{width:30px;height:30px;border-radius:50%;background:rgba(245,200,66,0.15);border:1px solid rgba(245,200,66,0.3);color:var(--gold);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.fc{display:flex;align-items:center;gap:7px}
+.alrt{padding:9px 12px;border-radius:var(--r);font-size:12px;margin-bottom:7px;display:flex;align-items:center;gap:7px}
+.alrt.d{background:rgba(248,113,113,0.15);color:#f87171}
+.alrt.w{background:rgba(251,191,36,0.15);color:#fbbf24}
+.empty{text-align:center;padding:2rem;color:rgba(255,255,255,0.3);font-size:13px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.sr{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px}
+.sr:last-child{border-bottom:none;font-weight:700;font-size:13px}
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(5px);z-index:100;align-items:center;justify-content:center}
+.ov.open{display:flex}
+.modal{background:rgba(15,10,40,0.97);border:1px solid rgba(255,255,255,0.15);border-radius:var(--rl);padding:1.25rem;width:560px;max-width:95vw;max-height:90vh;overflow-y:auto}
+.mtitle{font-size:14px;font-weight:700;color:var(--gold);margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center}
 .fg{display:flex;flex-direction:column;gap:3px}
-.fg.full{grid-column:1/-1}
-.fg label{font-size:11px;color:var(--text2)}
-.fg input,.fg select{padding:7px 10px;font-size:12px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);font-family:'Cairo',sans-serif}
-.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
-.notif{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 24px;border-radius:30px;font-size:13px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
+.fg label{font-size:11px;color:rgba(255,255,255,0.5);font-weight:600}
+.fg input,.fg select{padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,0.12);border-radius:var(--r);background:rgba(255,255,255,0.07);color:#fff;font-family:'Cairo',sans-serif}
+.fg input:focus,.fg select:focus{outline:none;border-color:rgba(245,200,66,0.4)}
+.fg select option{background:#1a1040}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.full{grid-column:1/-1}
+.mfooter{display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,0.07)}
+.notif{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#f5c842,#e8a800);color:#1a1200;padding:9px 24px;border-radius:30px;font-size:13px;font-weight:700;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
 .notif.show{opacity:1}
 </style>
 </head>
 <body>
 <div class="app">
 
-<!-- SIDEBAR -->
-<div class="sidebar">
-  <div class="logo">
-    <div class="logo-title">🏢 نظام HR</div>
-    <div class="logo-sub" id="company-display">شركتي</div>
+<div class="sidebar" id="sb">
+  <div class="logo-area">
+    <div class="logo-icon">🏗️</div>
+    <div class="logo-name hide-on-collapse">شركة كيان وبناء<br>للمقاولات</div>
   </div>
   <div class="nav-sec">
-    <div class="nav-lbl">الرئيسية</div>
-    <button class="nav-btn active" onclick="go('dashboard',this)">⊞ لوحة التحكم</button>
+    <div class="nav-lbl hide-on-collapse">الرئيسية</div>
+    <button class="nav-btn active" onclick="go('dashboard',this)"><span class="nav-icon">⊞</span><span class="hide-on-collapse">لوحة التحكم</span></button>
   </div>
   <div class="nav-sec">
-    <div class="nav-lbl">الموظفون</div>
-    <button class="nav-btn" onclick="go('employees',this)">👥 الموظفون</button>
-    <button class="nav-btn" onclick="go('iqama',this)">🪪 الإقامات</button>
-    <button class="nav-btn" onclick="go('documents',this)">📁 وثائق الشركة</button>
+    <div class="nav-lbl hide-on-collapse">الموظفون</div>
+    <button class="nav-btn" onclick="go('employees',this)"><span class="nav-icon">👥</span><span class="hide-on-collapse">الموظفون</span></button>
+    <button class="nav-btn" onclick="go('iqama',this)"><span class="nav-icon">🪪</span><span class="hide-on-collapse">الإقامات</span></button>
+    <button class="nav-btn" onclick="go('documents',this)"><span class="nav-icon">📁</span><span class="hide-on-collapse">وثائق الشركة</span></button>
   </div>
   <div class="nav-sec">
-    <div class="nav-lbl">المالية</div>
-    <button class="nav-btn" onclick="go('salaries',this)">💵 الرواتب</button>
-    <button class="nav-btn" onclick="go('deductions',this)">➖ الخصومات والجزاءات</button>
-    <button class="nav-btn" onclick="go('bonuses',this)">🎁 المكافآت</button>
-    <button class="nav-btn" onclick="go('traffic',this)">🚗 المخالفات المرورية</button>
+    <div class="nav-lbl hide-on-collapse">المالية</div>
+    <button class="nav-btn" onclick="go('salaries',this)"><span class="nav-icon">💵</span><span class="hide-on-collapse">الرواتب</span></button>
+    <button class="nav-btn" onclick="go('report',this)"><span class="nav-icon">📊</span><span class="hide-on-collapse">تقرير الرواتب</span></button>
+    <button class="nav-btn" onclick="go('loans',this)"><span class="nav-icon">💰</span><span class="hide-on-collapse">السلف</span></button>
+    <button class="nav-btn" onclick="go('deductions',this)"><span class="nav-icon">➖</span><span class="hide-on-collapse">الخصومات</span></button>
+    <button class="nav-btn" onclick="go('bonuses',this)"><span class="nav-icon">🎁</span><span class="hide-on-collapse">المكافآت</span></button>
+    <button class="nav-btn" onclick="go('traffic',this)"><span class="nav-icon">🚗</span><span class="hide-on-collapse">المخالفات</span></button>
   </div>
   <div class="nav-sec">
-    <div class="nav-lbl">الحضور</div>
-    <button class="nav-btn" onclick="go('leaves',this)">📅 الإجازات</button>
-    <button class="nav-btn" onclick="go('attendance',this)">⏰ التأخيرات</button>
+    <div class="nav-lbl hide-on-collapse">الحضور</div>
+    <button class="nav-btn" onclick="go('leaves',this)"><span class="nav-icon">📅</span><span class="hide-on-collapse">الإجازات</span></button>
+    <button class="nav-btn" onclick="go('attendance',this)"><span class="nav-icon">⏰</span><span class="hide-on-collapse">التأخيرات</span></button>
   </div>
-  <div style="padding:.75rem">
-    <button class="btn" style="width:100%;justify-content:center" onclick="go('settings',this)">⚙️ الإعدادات</button>
+  <div class="sidebar-foot">
+    <button class="btn" style="width:100%;justify-content:center" onclick="go('settings',this)"><span class="nav-icon">⚙️</span><span class="hide-on-collapse">الإعدادات</span></button>
   </div>
 </div>
 
-<!-- MAIN -->
-<div class="main">
+<button class="toggle-btn" id="tbtn" onclick="toggleSB()" style="right:calc(var(--sw) - 12px)">◀</button>
+
+<div class="main" id="mn">
   <div class="topbar">
-    <span class="topbar-title" id="page-title">لوحة التحكم</span>
-    <span id="today-lbl" style="font-size:11px;color:var(--text2)"></span>
+    <span class="topbar-title" id="ptitle">لوحة التحكم</span>
+    <span id="datelbl" style="font-size:11px;color:rgba(255,255,255,0.3)"></span>
   </div>
   <div class="content">
 
     <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
-      <div class="metrics" id="dash-metrics"></div>
-      <div class="grid2">
-        <div class="card"><div class="card-hdr"><span class="card-title">⚠️ تنبيهات إقامات</span></div><div id="dash-iq"></div></div>
-        <div class="card"><div class="card-hdr"><span class="card-title">📊 ملخص الشهر</span></div><div id="dash-sum"></div></div>
+      <div class="metrics" id="d-metrics"></div>
+      <div class="g2">
+        <div class="card"><div class="card-hdr"><span class="card-title">⚠️ تنبيهات إقامات</span></div><div id="d-iq"></div></div>
+        <div class="card"><div class="card-hdr"><span class="card-title">📊 ملخص الشهر</span></div><div id="d-sum"></div></div>
       </div>
-      <div class="card"><div class="card-hdr"><span class="card-title">⏰ آخر التأخيرات</span></div><div id="dash-att"></div></div>
+      <div class="card"><div class="card-hdr"><span class="card-title">⏰ آخر التأخيرات</span></div><div id="d-att"></div></div>
     </div>
 
     <!-- EMPLOYEES -->
     <div class="page" id="page-employees">
       <div class="card">
-        <div class="card-hdr"><span class="card-title">👥 الموظفون</span><button class="btn primary" onclick="openModal('emp-modal')">+ إضافة موظف</button></div>
+        <div class="card-hdr"><span class="card-title">👥 الموظفون</span>
+          <div class="fc">
+            <button class="btn blu" onclick="document.getElementById('pdf-imp').click()">📥 استيراد من التأمينات</button>
+            <input type="file" id="pdf-imp" accept=".pdf,image/*" style="display:none" onchange="importInsurance(this)">
+            <button class="btn pri" onclick="openM('m-emp')">+ إضافة موظف</button>
+          </div>
+        </div>
         <div id="emp-wrap"></div>
       </div>
     </div>
@@ -137,7 +159,13 @@ tr:hover td{background:var(--bg2)}
     <!-- IQAMA -->
     <div class="page" id="page-iqama">
       <div class="card">
-        <div class="card-hdr"><span class="card-title">🪪 الإقامات</span><button class="btn primary" onclick="openModal('iq-modal')">+ إضافة إقامة</button></div>
+        <div class="card-hdr"><span class="card-title">🪪 الإقامات</span>
+          <div class="fc">
+            <button class="btn blu" onclick="document.getElementById('iq-img').click()">📷 مسح صورة إقامة</button>
+            <input type="file" id="iq-img" accept="image/*" style="display:none" onchange="scanIqama(this)">
+            <button class="btn pri" onclick="openM('m-iq')">+ إضافة يدوياً</button>
+          </div>
+        </div>
         <div id="iq-wrap"></div>
       </div>
     </div>
@@ -145,77 +173,110 @@ tr:hover td{background:var(--bg2)}
     <!-- DOCUMENTS -->
     <div class="page" id="page-documents">
       <div class="card">
-        <div class="card-hdr"><span class="card-title">📁 وثائق الشركة</span><button class="btn primary" onclick="openModal('doc-modal')">+ إضافة وثيقة</button></div>
+        <div class="card-hdr"><span class="card-title">📁 وثائق الشركة</span>
+          <div class="fc">
+            <button class="btn blu" onclick="document.getElementById('doc-pdf-up').click()">📤 رفع PDF</button>
+            <input type="file" id="doc-pdf-up" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none" onchange="uploadDoc(this)">
+            <button class="btn pri" onclick="openM('m-doc')">+ إضافة يدوياً</button>
+          </div>
+        </div>
         <div id="doc-wrap"></div>
       </div>
     </div>
 
     <!-- SALARIES -->
     <div class="page" id="page-salaries">
-      <div style="display:flex;gap:10px;align-items:center;margin-bottom:1rem">
-        <span style="font-size:13px;color:var(--text2)">الشهر:</span>
-        <select id="sal-month" onchange="renderSalaries()" style="padding:5px 10px;font-size:12px;border:.5px solid var(--border2);border-radius:var(--r);font-family:'Cairo',sans-serif;background:var(--bg)">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:1rem;flex-wrap:wrap">
+        <span style="font-size:12px;color:rgba(255,255,255,0.5)">الشهر:</span>
+        <select id="sm" onchange="renderSal()" style="padding:5px 10px;font-size:12px;border:1px solid rgba(255,255,255,0.12);border-radius:var(--r);background:rgba(255,255,255,0.07);color:#fff;font-family:'Cairo',sans-serif">
           <option value="0">يناير</option><option value="1">فبراير</option><option value="2">مارس</option><option value="3">أبريل</option><option value="4">مايو</option><option value="5">يونيو</option><option value="6">يوليو</option><option value="7">أغسطس</option><option value="8">سبتمبر</option><option value="9">أكتوبر</option><option value="10">نوفمبر</option><option value="11">ديسمبر</option>
         </select>
-        <select id="sal-year" onchange="renderSalaries()" style="padding:5px 10px;font-size:12px;border:.5px solid var(--border2);border-radius:var(--r);font-family:'Cairo',sans-serif;background:var(--bg)">
+        <select id="sy" onchange="renderSal()" style="padding:5px 10px;font-size:12px;border:1px solid rgba(255,255,255,0.12);border-radius:var(--r);background:rgba(255,255,255,0.07);color:#fff;font-family:'Cairo',sans-serif">
           <option>2024</option><option>2025</option><option selected>2026</option><option>2027</option>
         </select>
+        <button class="btn gold" onclick="printSalReport()">🖨️ طباعة الكشف</button>
       </div>
       <div class="metrics" id="sal-metrics"></div>
       <div class="card"><div class="card-hdr"><span class="card-title" id="sal-title">💵 كشف الرواتب</span></div><div id="sal-wrap"></div></div>
     </div>
 
+    <!-- REPORT -->
+    <div class="page" id="page-report">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:1rem;flex-wrap:wrap">
+        <span style="font-size:12px;color:rgba(255,255,255,0.5)">الشهر:</span>
+        <select id="rm" onchange="renderRep()" style="padding:5px 10px;font-size:12px;border:1px solid rgba(255,255,255,0.12);border-radius:var(--r);background:rgba(255,255,255,0.07);color:#fff;font-family:'Cairo',sans-serif">
+          <option value="0">يناير</option><option value="1">فبراير</option><option value="2">مارس</option><option value="3">أبريل</option><option value="4">مايو</option><option value="5">يونيو</option><option value="6">يوليو</option><option value="7">أغسطس</option><option value="8">سبتمبر</option><option value="9">أكتوبر</option><option value="10">نوفمبر</option><option value="11">ديسمبر</option>
+        </select>
+        <select id="ry" onchange="renderRep()" style="padding:5px 10px;font-size:12px;border:1px solid rgba(255,255,255,0.12);border-radius:var(--r);background:rgba(255,255,255,0.07);color:#fff;font-family:'Cairo',sans-serif">
+          <option>2024</option><option>2025</option><option selected>2026</option><option>2027</option>
+        </select>
+        <button class="btn gold" onclick="printRep()">🖨️ طباعة التقرير</button>
+      </div>
+      <div class="metrics" id="rep-metrics"></div>
+      <div class="g2" style="margin-bottom:1rem">
+        <div class="card"><div class="card-hdr"><span class="card-title">🏦 تحويل بنكي</span></div><div id="rep-bank"></div></div>
+        <div class="card"><div class="card-hdr"><span class="card-title">💵 كاش</span></div><div id="rep-cash"></div></div>
+      </div>
+      <div class="card"><div class="card-hdr"><span class="card-title">📋 جميع الرواتب</span></div><div id="rep-all"></div></div>
+    </div>
+
+    <!-- LOANS -->
+    <div class="page" id="page-loans">
+      <div class="card">
+        <div class="card-hdr"><span class="card-title">💰 السلف والاقتطاعات</span><button class="btn pri" onclick="openM('m-loan')">+ إضافة سلفة</button></div>
+        <div id="loan-wrap"></div>
+      </div>
+      <div class="card" style="margin-top:0">
+        <div class="card-hdr"><span class="card-title">📋 ملخص السلف النشطة</span></div>
+        <div id="loan-summary"></div>
+      </div>
+    </div>
+
     <!-- DEDUCTIONS -->
     <div class="page" id="page-deductions">
-      <div class="card">
-        <div class="card-hdr"><span class="card-title">➖ الخصومات والجزاءات</span><button class="btn primary" onclick="openModal('ded-modal')">+ إضافة خصم / جزاء</button></div>
-        <div id="ded-wrap"></div>
-      </div>
+      <div class="card"><div class="card-hdr"><span class="card-title">➖ الخصومات والجزاءات</span><button class="btn pri" onclick="openM('m-ded')">+ إضافة</button></div><div id="ded-wrap"></div></div>
     </div>
 
     <!-- BONUSES -->
     <div class="page" id="page-bonuses">
-      <div class="card">
-        <div class="card-hdr"><span class="card-title">🎁 المكافآت والحوافز</span><button class="btn primary" onclick="openModal('bon-modal')">+ إضافة مكافأة</button></div>
-        <div id="bon-wrap"></div>
-      </div>
+      <div class="card"><div class="card-hdr"><span class="card-title">🎁 المكافآت</span><button class="btn pri" onclick="openM('m-bon')">+ إضافة</button></div><div id="bon-wrap"></div></div>
     </div>
 
     <!-- TRAFFIC -->
     <div class="page" id="page-traffic">
-      <div class="card">
-        <div class="card-hdr"><span class="card-title">🚗 المخالفات المرورية</span><button class="btn primary" onclick="openModal('traf-modal')">+ إضافة مخالفة</button></div>
-        <div id="traf-wrap"></div>
-      </div>
+      <div class="card"><div class="card-hdr"><span class="card-title">🚗 المخالفات المرورية</span><button class="btn pri" onclick="openM('m-traf')">+ إضافة</button></div><div id="traf-wrap"></div></div>
     </div>
 
     <!-- LEAVES -->
     <div class="page" id="page-leaves">
-      <div class="card">
-        <div class="card-hdr"><span class="card-title">📅 الإجازات</span><button class="btn primary" onclick="openModal('leave-modal')">+ طلب إجازة</button></div>
-        <div id="leave-wrap"></div>
-      </div>
+      <div class="card"><div class="card-hdr"><span class="card-title">📅 الإجازات</span><button class="btn pri" onclick="openM('m-leave')">+ طلب إجازة</button></div><div id="leave-wrap"></div></div>
     </div>
 
     <!-- ATTENDANCE -->
     <div class="page" id="page-attendance">
       <div class="card">
-        <div class="card-hdr"><span class="card-title">⏰ سجل التأخيرات</span><button class="btn primary" onclick="openModal('att-modal')">+ تسجيل تأخير</button></div>
+        <div class="card-hdr"><span class="card-title">⏰ التأخيرات والحضور</span>
+          <div class="fc">
+            <button class="btn blu" onclick="document.getElementById('att-pdf').click()">📄 رفع PDF الحضور</button>
+            <input type="file" id="att-pdf" accept=".pdf,image/*" style="display:none" onchange="importAttendance(this)">
+            <button class="btn pri" onclick="openM('m-att')">+ تسجيل يدوي</button>
+          </div>
+        </div>
         <div id="att-wrap"></div>
       </div>
     </div>
 
     <!-- SETTINGS -->
     <div class="page" id="page-settings">
-      <div class="card" style="max-width:480px">
+      <div class="card" style="max-width:460px">
         <div class="card-hdr"><span class="card-title">⚙️ الإعدادات</span></div>
-        <div class="fg" style="margin-bottom:12px"><label>اسم الشركة</label><input id="set-company" type="text" placeholder="اسم الشركة"></div>
-        <div class="fg" style="margin-bottom:12px"><label>أيام الإجازة السنوية</label><input id="set-leave" type="number" value="21" min="1"></div>
-        <div class="fg" style="margin-bottom:12px"><label>تنبيه الإقامة قبل (يوم)</label><input id="set-warn" type="number" value="60" min="1"></div>
-        <div class="fg" style="margin-bottom:16px"><label>معدل خصم التأخير (ريال/ساعة)</label><input id="set-rate" type="number" value="50" min="0"></div>
-        <div style="display:flex;gap:10px">
-          <button class="btn primary" onclick="saveSettings()">✓ حفظ الإعدادات</button>
-          <button class="btn danger" onclick="if(confirm('مسح جميع البيانات؟'))clearAll()">🗑 مسح كل البيانات</button>
+        <div class="fg" style="margin-bottom:11px"><label>اسم الشركة</label><input id="set-co" value="شركة كيان وبناء للمقاولات"></div>
+        <div class="fg" style="margin-bottom:11px"><label>أيام الإجازة السنوية</label><input id="set-lv" type="number" value="21" min="1"></div>
+        <div class="fg" style="margin-bottom:11px"><label>تنبيه الإقامة قبل (يوم)</label><input id="set-wn" type="number" value="60" min="1"></div>
+        <div class="fg" style="margin-bottom:15px"><label>معدل خصم التأخير (ريال/ساعة)</label><input id="set-rt" type="number" value="50" min="0"></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn gold" onclick="saveSettings()">✓ حفظ</button>
+          <button class="btn red" onclick="if(confirm('مسح جميع البيانات؟'))clearAll()">🗑 مسح الكل</button>
         </div>
       </div>
     </div>
@@ -225,414 +286,738 @@ tr:hover td{background:var(--bg2)}
 </div>
 
 <!-- MODALS -->
-
-<!-- Employee -->
-<div class="overlay" id="emp-modal">
-<div class="modal">
-  <div class="modal-title">بيانات الموظف <button class="btn sm" onclick="closeModal('emp-modal')">✕</button></div>
-  <input type="hidden" id="emp-eid">
-  <div class="form-grid">
-    <div class="fg"><label>الاسم الكامل</label><input id="emp-name" placeholder="اسم الموظف"></div>
-    <div class="fg"><label>الجنسية</label><input id="emp-nat" placeholder="الجنسية"></div>
-    <div class="fg"><label>رقم الهوية / الإقامة</label><input id="emp-idno" placeholder="رقم الهوية"></div>
-    <div class="fg"><label>رقم الجوال</label><input id="emp-phone" placeholder="رقم الجوال"></div>
-    <div class="fg"><label>المسمى الوظيفي</label><input id="emp-title" placeholder="المسمى"></div>
-    <div class="fg"><label>القسم</label><input id="emp-dept" placeholder="القسم"></div>
-    <div class="fg"><label>الراتب الأساسي (ريال)</label><input id="emp-salary" type="number" min="0"></div>
-    <div class="fg"><label>بدل السكن (ريال)</label><input id="emp-housing" type="number" min="0"></div>
-    <div class="fg"><label>بدل النقل (ريال)</label><input id="emp-transport" type="number" min="0"></div>
-    <div class="fg"><label>تاريخ التعيين</label><input id="emp-hire" type="date"></div>
-    <div class="fg"><label>الحالة</label><select id="emp-status"><option>نشط</option><option>إجازة</option><option>منتهي</option></select></div>
+<div class="ov" id="m-emp"><div class="modal">
+  <div class="mtitle">👤 بيانات الموظف <button class="btn sm red" onclick="closeM('m-emp')">✕</button></div>
+  <input type="hidden" id="e-id">
+  <div class="fgrid">
+    <div class="fg"><label>الاسم الكامل</label><input id="e-name" placeholder="اسم الموظف"></div>
+    <div class="fg"><label>الجنسية</label><input id="e-nat" placeholder="الجنسية"></div>
+    <div class="fg"><label>رقم الهوية</label><input id="e-idno"></div>
+    <div class="fg"><label>رقم الجوال</label><input id="e-phone"></div>
+    <div class="fg"><label>المسمى الوظيفي</label><input id="e-title"></div>
+    <div class="fg"><label>القسم</label><input id="e-dept"></div>
+    <div class="fg"><label>الراتب الأساسي</label><input id="e-sal" type="number" min="0"></div>
+    <div class="fg"><label>بدل السكن</label><input id="e-hou" type="number" min="0"></div>
+    <div class="fg"><label>بدل النقل</label><input id="e-trn" type="number" min="0"></div>
+    <div class="fg"><label>تاريخ التعيين</label><input id="e-hire" type="date"></div>
+    <div class="fg"><label>رقم التأمينات</label><input id="e-ins"></div>
+    <div class="fg"><label>طريقة الصرف</label><select id="e-pay"><option value="cash">كاش</option><option value="bank">تحويل بنكي</option></select></div>
+    <div class="fg"><label>رقم الحساب البنكي</label><input id="e-bank"></div>
+    <div class="fg"><label>الحالة</label><select id="e-stat"><option>نشط</option><option>إجازة</option><option>منتهي</option></select></div>
   </div>
-  <div class="modal-footer"><button class="btn" onclick="closeModal('emp-modal')">إلغاء</button><button class="btn primary" onclick="saveEmp()">✓ حفظ</button></div>
+  <div class="mfooter"><button class="btn" onclick="closeM('m-emp')">إلغاء</button><button class="btn gold" onclick="saveEmp()">✓ حفظ</button></div>
 </div></div>
 
-<!-- Iqama -->
-<div class="overlay" id="iq-modal">
-<div class="modal">
-  <div class="modal-title">بيانات الإقامة <button class="btn sm" onclick="closeModal('iq-modal')">✕</button></div>
-  <input type="hidden" id="iq-eid">
-  <div class="form-grid">
+<div class="ov" id="m-iq"><div class="modal">
+  <div class="mtitle">🪪 بيانات الإقامة <button class="btn sm red" onclick="closeM('m-iq')">✕</button></div>
+  <input type="hidden" id="iq-id">
+  <div class="fgrid">
     <div class="fg"><label>الموظف</label><select id="iq-emp"></select></div>
-    <div class="fg"><label>رقم الإقامة</label><input id="iq-no" placeholder="رقم الإقامة"></div>
-    <div class="fg"><label>تاريخ الإصدار</label><input id="iq-issue" type="date"></div>
-    <div class="fg"><label>تاريخ الانتهاء</label><input id="iq-expiry" type="date"></div>
+    <div class="fg"><label>رقم الإقامة</label><input id="iq-no"></div>
+    <div class="fg"><label>تاريخ الإصدار</label><input id="iq-iss" type="date"></div>
+    <div class="fg"><label>تاريخ الانتهاء</label><input id="iq-exp" type="date"></div>
     <div class="fg"><label>تكلفة التجديد (ريال)</label><input id="iq-cost" type="number" min="0"></div>
-    <div class="fg"><label>ملاحظات</label><input id="iq-notes" placeholder="ملاحظات"></div>
+    <div class="fg"><label>ملاحظات</label><input id="iq-note"></div>
   </div>
-  <div class="modal-footer"><button class="btn" onclick="closeModal('iq-modal')">إلغاء</button><button class="btn primary" onclick="saveIq()">✓ حفظ</button></div>
+  <div class="mfooter"><button class="btn" onclick="closeM('m-iq')">إلغاء</button><button class="btn gold" onclick="saveIq()">✓ حفظ</button></div>
 </div></div>
 
-<!-- Document -->
-<div class="overlay" id="doc-modal">
-<div class="modal">
-  <div class="modal-title">بيانات الوثيقة <button class="btn sm" onclick="closeModal('doc-modal')">✕</button></div>
-  <input type="hidden" id="doc-eid">
-  <div class="form-grid">
-    <div class="fg full"><label>اسم الوثيقة</label><input id="doc-name" placeholder="اسم الوثيقة"></div>
+<div class="ov" id="m-doc"><div class="modal">
+  <div class="mtitle">📁 بيانات الوثيقة <button class="btn sm red" onclick="closeM('m-doc')">✕</button></div>
+  <input type="hidden" id="doc-id">
+  <div class="fgrid">
+    <div class="fg full"><label>اسم الوثيقة</label><input id="doc-name"></div>
     <div class="fg"><label>النوع</label><select id="doc-type"><option>رسمي</option><option>تراخيص</option><option>مالي</option><option>تأمين</option><option>عقود</option><option>أخرى</option></select></div>
-    <div class="fg"><label>تاريخ الرفع</label><input id="doc-upload" type="date"></div>
-    <div class="fg"><label>تاريخ الانتهاء</label><input id="doc-expiry" type="date"></div>
-    <div class="fg full"><label>ملاحظات</label><input id="doc-notes" placeholder="ملاحظات"></div>
+    <div class="fg"><label>تاريخ الرفع</label><input id="doc-up" type="date"></div>
+    <div class="fg"><label>تاريخ الانتهاء</label><input id="doc-exp" type="date"></div>
+    <div class="fg full"><label>ملاحظات</label><input id="doc-note"></div>
   </div>
-  <div class="modal-footer"><button class="btn" onclick="closeModal('doc-modal')">إلغاء</button><button class="btn primary" onclick="saveDoc()">✓ حفظ</button></div>
+  <div class="mfooter"><button class="btn" onclick="closeM('m-doc')">إلغاء</button><button class="btn gold" onclick="saveDoc()">✓ حفظ</button></div>
 </div></div>
 
-<!-- Deduction -->
-<div class="overlay" id="ded-modal">
-<div class="modal">
-  <div class="modal-title">إضافة خصم / جزاء <button class="btn sm" onclick="closeModal('ded-modal')">✕</button></div>
-  <div class="form-grid">
+<div class="ov" id="m-loan"><div class="modal">
+  <div class="mtitle">💰 إضافة سلفة <button class="btn sm red" onclick="closeM('m-loan')">✕</button></div>
+  <div class="fgrid">
+    <div class="fg"><label>الموظف</label><select id="ln-emp"></select></div>
+    <div class="fg"><label>مبلغ السلفة (ريال)</label><input id="ln-amt" type="number" min="0" placeholder="0" oninput="calcLoan()"></div>
+    <div class="fg"><label>تاريخ السلفة</label><input id="ln-dt" type="date"></div>
+    <div class="fg"><label>عدد الأقساط (شهر)</label><input id="ln-inst" type="number" min="1" max="24" value="3" oninput="calcLoan()"></div>
+    <div class="fg"><label>السبب</label><input id="ln-rsn" placeholder="سبب السلفة"></div>
+    <div class="fg"><label>القسط الشهري (محسوب)</label><input id="ln-monthly" readonly style="background:rgba(245,200,66,0.08);color:var(--gold);font-weight:700"></div>
+  </div>
+  <div id="ln-preview" style="padding:10px;background:rgba(245,200,66,0.07);border:1px solid rgba(245,200,66,0.2);border-radius:9px;font-size:12px;margin-bottom:10px;display:none"></div>
+  <div class="mfooter"><button class="btn" onclick="closeM('m-loan')">إلغاء</button><button class="btn gold" onclick="saveLoan()">✓ حفظ</button></div>
+</div></div>
+
+<div class="ov" id="m-ded"><div class="modal">
+  <div class="mtitle">➖ خصم / جزاء <button class="btn sm red" onclick="closeM('m-ded')">✕</button></div>
+  <div class="fgrid">
     <div class="fg"><label>الموظف</label><select id="ded-emp"></select></div>
     <div class="fg"><label>النوع</label><select id="ded-type"><option>تأخير</option><option>غياب</option><option>مخالفة</option><option>إنذار</option><option>خصم يوم</option><option>أخرى</option></select></div>
-    <div class="fg"><label>التاريخ</label><input id="ded-date" type="date"></div>
-    <div class="fg"><label>المبلغ (ريال)</label><input id="ded-amount" type="number" min="0"></div>
-    <div class="fg full"><label>السبب</label><input id="ded-reason" placeholder="سبب الخصم"></div>
+    <div class="fg"><label>التاريخ</label><input id="ded-dt" type="date"></div>
+    <div class="fg"><label>المبلغ (ريال)</label><input id="ded-amt" type="number" min="0"></div>
+    <div class="fg full"><label>السبب</label><input id="ded-rsn"></div>
   </div>
-  <div class="modal-footer"><button class="btn" onclick="closeModal('ded-modal')">إلغاء</button><button class="btn primary" onclick="saveDed()">✓ حفظ</button></div>
+  <div class="mfooter"><button class="btn" onclick="closeM('m-ded')">إلغاء</button><button class="btn gold" onclick="saveDed()">✓ حفظ</button></div>
 </div></div>
 
-<!-- Bonus -->
-<div class="overlay" id="bon-modal">
-<div class="modal">
-  <div class="modal-title">إضافة مكافأة <button class="btn sm" onclick="closeModal('bon-modal')">✕</button></div>
-  <div class="form-grid">
+<div class="ov" id="m-bon"><div class="modal">
+  <div class="mtitle">🎁 مكافأة <button class="btn sm red" onclick="closeM('m-bon')">✕</button></div>
+  <div class="fgrid">
     <div class="fg"><label>الموظف</label><select id="bon-emp"></select></div>
     <div class="fg"><label>النوع</label><select id="bon-type"><option>أداء متميز</option><option>مكافأة شهرية</option><option>حافز انتظام</option><option>إنجاز مشروع</option><option>عيد</option><option>أخرى</option></select></div>
-    <div class="fg"><label>التاريخ</label><input id="bon-date" type="date"></div>
-    <div class="fg"><label>المبلغ (ريال)</label><input id="bon-amount" type="number" min="0"></div>
-    <div class="fg full"><label>السبب</label><input id="bon-reason" placeholder="سبب المكافأة"></div>
+    <div class="fg"><label>التاريخ</label><input id="bon-dt" type="date"></div>
+    <div class="fg"><label>المبلغ (ريال)</label><input id="bon-amt" type="number" min="0"></div>
+    <div class="fg full"><label>السبب</label><input id="bon-rsn"></div>
   </div>
-  <div class="modal-footer"><button class="btn" onclick="closeModal('bon-modal')">إلغاء</button><button class="btn primary" onclick="saveBon()">✓ حفظ</button></div>
+  <div class="mfooter"><button class="btn" onclick="closeM('m-bon')">إلغاء</button><button class="btn gold" onclick="saveBon()">✓ حفظ</button></div>
 </div></div>
 
-<!-- Traffic -->
-<div class="overlay" id="traf-modal">
-<div class="modal">
-  <div class="modal-title">إضافة مخالفة مرورية <button class="btn sm" onclick="closeModal('traf-modal')">✕</button></div>
-  <div class="form-grid">
+<div class="ov" id="m-traf"><div class="modal">
+  <div class="mtitle">🚗 مخالفة مرورية <button class="btn sm red" onclick="closeM('m-traf')">✕</button></div>
+  <div class="fgrid">
     <div class="fg"><label>الموظف</label><select id="traf-emp"></select></div>
-    <div class="fg"><label>رقم اللوحة</label><input id="traf-plate" placeholder="رقم اللوحة"></div>
+    <div class="fg"><label>رقم اللوحة</label><input id="traf-pl"></div>
     <div class="fg"><label>نوع المخالفة</label><select id="traf-type"><option>تجاوز السرعة</option><option>قطع إشارة</option><option>وقوف خاطئ</option><option>استخدام الجوال</option><option>أخرى</option></select></div>
-    <div class="fg"><label>التاريخ</label><input id="traf-date" type="date"></div>
-    <div class="fg"><label>المبلغ (ريال)</label><input id="traf-amount" type="number" min="0"></div>
-    <div class="fg"><label>التحمل</label><select id="traf-resp"><option value="full">على الموظف كاملاً</option><option value="half">مشتركة 50/50</option><option value="company">على الشركة</option></select></div>
+    <div class="fg"><label>التاريخ</label><input id="traf-dt" type="date"></div>
+    <div class="fg"><label>المبلغ (ريال)</label><input id="traf-amt" type="number" min="0"></div>
+    <div class="fg"><label>التحمل</label><select id="traf-resp"><option value="full">على الموظف كاملاً</option><option value="half">مشتركة 50/50</option><option value="co">على الشركة</option></select></div>
   </div>
-  <div class="modal-footer"><button class="btn" onclick="closeModal('traf-modal')">إلغاء</button><button class="btn primary" onclick="saveTraf()">✓ حفظ</button></div>
+  <div class="mfooter"><button class="btn" onclick="closeM('m-traf')">إلغاء</button><button class="btn gold" onclick="saveTraf()">✓ حفظ</button></div>
 </div></div>
 
-<!-- Leave -->
-<div class="overlay" id="leave-modal">
-<div class="modal">
-  <div class="modal-title">طلب إجازة <button class="btn sm" onclick="closeModal('leave-modal')">✕</button></div>
-  <div class="form-grid">
-    <div class="fg"><label>الموظف</label><select id="leave-emp"></select></div>
-    <div class="fg"><label>نوع الإجازة</label><select id="leave-type"><option>سنوية</option><option>مرضية</option><option>طارئة</option><option>أمومة</option><option>بدون راتب</option></select></div>
-    <div class="fg"><label>من تاريخ</label><input id="leave-from" type="date"></div>
-    <div class="fg"><label>إلى تاريخ</label><input id="leave-to" type="date"></div>
-    <div class="fg"><label>الحالة</label><select id="leave-status"><option>انتظار الموافقة</option><option>موافق</option><option>مرفوض</option></select></div>
-    <div class="fg"><label>ملاحظات</label><input id="leave-notes" placeholder="ملاحظات"></div>
+<div class="ov" id="m-leave"><div class="modal">
+  <div class="mtitle">📅 طلب إجازة <button class="btn sm red" onclick="closeM('m-leave')">✕</button></div>
+  <div class="fgrid">
+    <div class="fg"><label>الموظف</label><select id="lv-emp"></select></div>
+    <div class="fg"><label>النوع</label><select id="lv-type"><option>سنوية</option><option>مرضية</option><option>طارئة</option><option>أمومة</option><option>بدون راتب</option></select></div>
+    <div class="fg"><label>من تاريخ</label><input id="lv-from" type="date"></div>
+    <div class="fg"><label>إلى تاريخ</label><input id="lv-to" type="date"></div>
+    <div class="fg"><label>الحالة</label><select id="lv-stat"><option>انتظار الموافقة</option><option>موافق</option><option>مرفوض</option></select></div>
+    <div class="fg"><label>ملاحظات</label><input id="lv-note"></div>
   </div>
-  <div class="modal-footer"><button class="btn" onclick="closeModal('leave-modal')">إلغاء</button><button class="btn primary" onclick="saveLeave()">✓ حفظ</button></div>
+  <div class="mfooter"><button class="btn" onclick="closeM('m-leave')">إلغاء</button><button class="btn gold" onclick="saveLv()">✓ حفظ</button></div>
 </div></div>
 
-<!-- Attendance -->
-<div class="overlay" id="att-modal">
-<div class="modal">
-  <div class="modal-title">تسجيل تأخير <button class="btn sm" onclick="closeModal('att-modal')">✕</button></div>
-  <div class="form-grid">
+<div class="ov" id="m-att"><div class="modal">
+  <div class="mtitle">⏰ تسجيل تأخير <button class="btn sm red" onclick="closeM('m-att')">✕</button></div>
+  <div class="fgrid">
     <div class="fg"><label>الموظف</label><select id="att-emp"></select></div>
-    <div class="fg"><label>التاريخ</label><input id="att-date" type="date"></div>
-    <div class="fg"><label>وقت الحضور</label><input id="att-time" type="time"></div>
-    <div class="fg"><label>مدة التأخير (دقيقة)</label><input id="att-mins" type="number" min="0"></div>
-    <div class="fg"><label>الإجراء</label><select id="att-action"><option>تحذير شفهي</option><option>تحذير كتابي</option><option>خصم مطبق</option><option>تسامح</option></select></div>
-    <div class="fg"><label>الخصم (ريال)</label><input id="att-deduct" type="number" min="0"></div>
+    <div class="fg"><label>التاريخ</label><input id="att-dt" type="date"></div>
+    <div class="fg"><label>وقت الحضور</label><input id="att-tm" type="time"></div>
+    <div class="fg"><label>مدة التأخير (دقيقة)</label><input id="att-min" type="number" min="0"></div>
+    <div class="fg"><label>الإجراء</label><select id="att-act"><option>تحذير شفهي</option><option>تحذير كتابي</option><option>خصم مطبق</option><option>تسامح</option></select></div>
+    <div class="fg"><label>الخصم (ريال)</label><input id="att-ded" type="number" min="0"></div>
   </div>
-  <div class="modal-footer"><button class="btn" onclick="closeModal('att-modal')">إلغاء</button><button class="btn primary" onclick="saveAtt()">✓ حفظ</button></div>
+  <div class="mfooter"><button class="btn" onclick="closeM('m-att')">إلغاء</button><button class="btn gold" onclick="saveAtt()">✓ حفظ</button></div>
 </div></div>
 
 <div class="notif" id="notif"></div>
 
 <script>
-const KEY='hr_v3';
-let db={employees:[],iqama:[],documents:[],deductions:[],bonuses:[],traffic:[],leaves:[],attendance:[],settings:{company:'شركتي',leaveDays:21,iqamaWarn:60,lateRate:50}};
+const MN=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+const TITLES={dashboard:'لوحة التحكم',loans:'السلف والاقتطاعات',employees:'الموظفون',iqama:'الإقامات',documents:'وثائق الشركة',salaries:'الرواتب',report:'تقرير الرواتب',deductions:'الخصومات والجزاءات',bonuses:'المكافآت',traffic:'المخالفات المرورية',leaves:'الإجازات',attendance:'التأخيرات والحضور',settings:'الإعدادات'};
+const KEY='hr_kayan_v3';
+let db={employees:[],iqama:[],documents:[],deductions:[],bonuses:[],traffic:[],leaves:[],attendance:[],loans:[],settings:{company:'شركة كيان وبناء للمقاولات',leaveDays:21,iqamaWarn:60,lateRate:50}};
 
-function load(){try{const s=localStorage.getItem(KEY);if(s)db={...db,...JSON.parse(s)};}catch(e){}applySettings();renderAll();}
+function load(){try{const s=localStorage.getItem(KEY);if(s){const loaded=JSON.parse(s);db={...db,...loaded};if(!db.loans)db.loans=[];}}catch(e){}renderAll();}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(db));}catch(e){}}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 function fmt(n){return Number(n||0).toLocaleString('ar-SA');}
-function today(){return new Date().toISOString().split('T')[0];}
-function av(name){const p=(name||'').trim().split(' ');return((p[0]||'')[0]||'')+((p[1]||'')[0]||'');}
-function empName(id){const e=db.employees.find(x=>x.id===id);return e?e.name:'—';}
-function daysDiff(d){if(!d)return null;return Math.round((new Date(d)-new Date())/86400000);}
-function notify(msg){const n=document.getElementById('notif');n.textContent=msg;n.classList.add('show');setTimeout(()=>n.classList.remove('show'),2500);}
+function td(){return new Date().toISOString().split('T')[0];}
+function av(n){const p=(n||'').trim().split(' ');return((p[0]||'')[0]||'')+((p[1]||'')[0]||'');}
+function en(id){const e=db.employees.find(x=>x.id===id);return e?e.name:'—';}
+function dd(d){if(!d)return null;return Math.round((new Date(d)-new Date())/86400000);}
+function ntf(m){const n=document.getElementById('notif');n.textContent=m;n.classList.add('show');setTimeout(()=>n.classList.remove('show'),2500);}
 
-const titles={dashboard:'لوحة التحكم',employees:'الموظفون',iqama:'الإقامات',documents:'وثائق الشركة',salaries:'الرواتب',deductions:'الخصومات والجزاءات',bonuses:'المكافآت',traffic:'المخالفات المرورية',leaves:'الإجازات',attendance:'التأخيرات',settings:'الإعدادات'};
+// Sidebar toggle
+let sbOpen=true;
+function toggleSB(){
+  sbOpen=!sbOpen;
+  const sb=document.getElementById('sb');
+  const mn=document.getElementById('mn');
+  const tb=document.getElementById('tbtn');
+  sb.classList.toggle('hide',!sbOpen);
+  mn.classList.toggle('wide',!sbOpen);
+  tb.textContent=sbOpen?'◀':'▶';
+  tb.style.right=sbOpen?'calc(var(--sw) - 12px)':'40px';
+}
 
+// Navigation
 function go(page,btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
-  document.getElementById('page-title').textContent=titles[page]||'';
+  document.getElementById('ptitle').textContent=TITLES[page]||'';
   if(btn)btn.classList.add('active');
-  if(page==='salaries'){const n=new Date();document.getElementById('sal-month').value=n.getMonth();renderSalaries();}
-  if(page==='settings'){document.getElementById('set-company').value=db.settings.company;document.getElementById('set-leave').value=db.settings.leaveDays;document.getElementById('set-warn').value=db.settings.iqamaWarn;document.getElementById('set-rate').value=db.settings.lateRate;}
+  if(page==='salaries'){document.getElementById('sm').value=new Date().getMonth();renderSal();}
+  if(page==='report'){document.getElementById('rm').value=new Date().getMonth();renderRep();}
+  if(page==='settings'){document.getElementById('set-co').value=db.settings.company||'';}
 }
 
-function openModal(id){
-  ['iq-emp','ded-emp','bon-emp','traf-emp','leave-emp','att-emp'].forEach(sid=>{
+// Modal
+function openM(id){
+  ['iq-emp','ded-emp','bon-emp','traf-emp','lv-emp','att-emp','ln-emp'].forEach(sid=>{
     const el=document.getElementById(sid);if(!el)return;
-    const emps=db.employees.filter(e=>e.status!=='منتهي');
-    el.innerHTML=emps.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
+    el.innerHTML=db.employees.filter(e=>e.status!=='منتهي').map(e=>'<option value="'+e.id+'">'+e.name+'</option>').join('');
   });
   document.getElementById(id).classList.add('open');
 }
-function closeModal(id){document.getElementById(id).classList.remove('open');}
+function closeM(id){document.getElementById(id).classList.remove('open');}
 
-function applySettings(){
-  document.getElementById('company-display').textContent=db.settings.company||'شركتي';
+// Badge
+function bdg(s){
+  const m={'نشط':'bs','سارية':'bs','موافق':'bs','انتظار الموافقة':'bw','تنتهي قريباً':'bw','تحذير كتابي':'bw','خصم مطبق':'bd','منتهية':'bd','منتهي':'bd','مرفوض':'bd','إجازة':'bi','تحذير شفهي':'bg','تسامح':'bg'};
+  return '<span class="badge '+(m[s]||'bg')+'">'+s+'</span>';
 }
 
-function badge(s){
-  const map={'نشط':'bs','مدفوع':'bs','سارية':'bs','موافق':'bs','مدفوعة':'bs','انتظار الموافقة':'bw','تنتهي قريباً':'bw','معلق':'bw','تحذير كتابي':'bw','خصم مطبق':'bd','منتهية':'bd','منتهي':'bd','مرفوض':'bd','إجازة':'bi','تحذير شفهي':'bg','تسامح':'bg'};
-  return`<span class="badge ${map[s]||'bg'}">${s}</span>`;
+// Salary calc
+function getSal(empId,mn,yr){
+  const e=db.employees.find(x=>x.id===empId);if(!e)return null;
+  const gross=(+e.salary||0)+(+e.housing||0)+(+e.transport||0);
+  const inM=arr=>arr.filter(x=>{if(!x.date)return false;const d=new Date(x.date);return d.getMonth()===mn&&d.getFullYear()===yr;});
+  const ded=inM(db.deductions.filter(d=>d.empId===empId)).reduce((a,d)=>a+(+d.amount||0),0)
+    +inM(db.attendance.filter(a=>a.empId===empId)).reduce((a,x)=>a+(+x.deduct||0),0)
+    +inM(db.traffic.filter(t=>t.empId===empId)).reduce((a,t)=>a+(t.resp==='full'?+t.amount:t.resp==='half'?Math.round(+t.amount/2):0),0);
+  const bon=inM(db.bonuses.filter(b=>b.empId===empId)).reduce((a,b)=>a+(+b.amount||0),0);
+  return{e,gross,ded,bon,net:gross-ded+bon};
 }
 
-function renderAll(){renderDash();renderEmp();renderIq();renderDoc();renderSalaries();renderDed();renderBon();renderTraf();renderLeave();renderAtt();}
+function renderAll(){renderDash();renderEmp();renderIq();renderDoc();renderSal();renderRep();renderDed();renderBon();renderTraf();renderLv();renderAtt();renderLoans();}
 
 function renderDash(){
   const warn=db.settings.iqamaWarn||60;
   const active=db.employees.filter(e=>e.status==='نشط').length;
-  const iqA=db.iqama.filter(q=>{const d=daysDiff(q.expiry);return d!==null&&d<warn;});
+  const iqA=db.iqama.filter(q=>{const d=dd(q.expiry);return d!==null&&d<warn;});
   const pending=db.leaves.filter(l=>l.status==='انتظار الموافقة').length;
-  const now=new Date();const mn=now.getMonth();const yr=now.getFullYear();
-  const inM=arr=>arr.filter(x=>{if(!x.date)return false;const d=new Date(x.date);return d.getMonth()===mn&&d.getFullYear()===yr;});
-  const totSal=db.employees.filter(e=>e.status==='نشط').reduce((a,e)=>a+(+e.salary||0)+(+e.housing||0)+(+e.transport||0),0);
-  const totDed=inM(db.deductions).reduce((a,d)=>a+(+d.amount||0),0);
-  const totBon=inM(db.bonuses).reduce((a,b)=>a+(+b.amount||0),0);
-  document.getElementById('dash-metrics').innerHTML=`
-    <div class="metric"><div class="metric-lbl">إجمالي الموظفين</div><div class="metric-val">${db.employees.length}</div><div class="metric-sub">${active} نشط</div></div>
-    <div class="metric"><div class="metric-lbl">إقامات تحتاج تنبيه</div><div class="metric-val" style="color:var(--warning-text)">${iqA.length}</div><div class="metric-sub">خلال ${warn} يوم</div></div>
-    <div class="metric"><div class="metric-lbl">إجمالي الرواتب</div><div class="metric-val">${fmt(totSal)}</div><div class="metric-sub">ريال</div></div>
-    <div class="metric"><div class="metric-lbl">إجازات معلقة</div><div class="metric-val" style="color:var(--info-text)">${pending}</div><div class="metric-sub">تحتاج موافقة</div></div>`;
-  const iqDiv=document.getElementById('dash-iq');
-  if(!iqA.length){iqDiv.innerHTML='<div class="empty">لا توجد تنبيهات 👍</div>';}
-  else iqDiv.innerHTML=iqA.slice(0,5).map(q=>{const d=daysDiff(q.expiry);const exp=d<0;return`<div class="alert ${exp?'d':'w'}">${exp?'🔴':'🟡'} ${empName(q.empId)} — ${exp?`منتهية منذ ${Math.abs(d)} يوم`:`تنتهي بعد ${d} يوم`}</div>`;}).join('');
-  document.getElementById('dash-sum').innerHTML=`
-    <div class="sum-row"><span>إجمالي الرواتب</span><span>${fmt(totSal)} ريال</span></div>
-    <div class="sum-row"><span>الخصومات</span><span style="color:var(--danger-text)">- ${fmt(totDed)} ريال</span></div>
-    <div class="sum-row"><span>المكافآت</span><span style="color:var(--success-text)">+ ${fmt(totBon)} ريال</span></div>
-    <div class="sum-row"><span>الصافي التقديري</span><span style="color:var(--info-text)">${fmt(totSal-totDed+totBon)} ريال</span></div>`;
-  const attDiv=document.getElementById('dash-att');
+  const now=new Date();const m=now.getMonth();const y=now.getFullYear();
+  const inM=arr=>arr.filter(x=>{if(!x.date)return false;const d=new Date(x.date);return d.getMonth()===m&&d.getFullYear()===y;});
+  const totS=db.employees.filter(e=>e.status==='نشط').reduce((a,e)=>a+(+e.salary||0)+(+e.housing||0)+(+e.transport||0),0);
+  const totD=inM(db.deductions).reduce((a,d)=>a+(+d.amount||0),0);
+  const totB=inM(db.bonuses).reduce((a,b)=>a+(+b.amount||0),0);
+  document.getElementById('d-metrics').innerHTML=
+    '<div class="metric"><div class="metric-lbl">إجمالي الموظفين</div><div class="metric-val">'+db.employees.length+'</div><div class="metric-sub">'+active+' نشط</div></div>'+
+    '<div class="metric"><div class="metric-lbl">إقامات تحتاج تنبيه</div><div class="metric-val" style="color:#fbbf24">'+iqA.length+'</div><div class="metric-sub">خلال '+warn+' يوم</div></div>'+
+    '<div class="metric"><div class="metric-lbl">إجمالي الرواتب</div><div class="metric-val">'+fmt(totS)+'</div><div class="metric-sub">ريال</div></div>'+
+    '<div class="metric"><div class="metric-lbl">إجازات معلقة</div><div class="metric-val" style="color:#60a5fa">'+pending+'</div><div class="metric-sub">تحتاج موافقة</div></div>';
+  const iqDiv=document.getElementById('d-iq');
+  iqDiv.innerHTML=iqA.length?iqA.slice(0,5).map(q=>{const d=dd(q.expiry);const exp=d<0;return'<div class="alrt '+(exp?'d':'w')+'">'+(exp?'🔴':'🟡')+' '+en(q.empId)+' — '+(exp?'منتهية منذ '+Math.abs(d)+' يوم':'تنتهي بعد '+d+' يوم')+'</div>';}).join(''):'<div class="empty">✅ لا توجد تنبيهات</div>';
+  document.getElementById('d-sum').innerHTML=
+    '<div class="sr"><span>إجمالي الرواتب</span><span>'+fmt(totS)+' ريال</span></div>'+
+    '<div class="sr"><span>الخصومات</span><span style="color:#f87171">- '+fmt(totD)+' ريال</span></div>'+
+    '<div class="sr"><span>المكافآت</span><span style="color:#34d399">+ '+fmt(totB)+' ريال</span></div>'+
+    '<div class="sr"><span>الصافي التقديري</span><span style="color:var(--gold)">'+fmt(totS-totD+totB)+' ريال</span></div>';
   const rec=db.attendance.slice(-5).reverse();
-  if(!rec.length){attDiv.innerHTML='<div class="empty">لا يوجد سجل تأخيرات</div>';}
-  else attDiv.innerHTML=`<table><tr><th>الموظف</th><th>التاريخ</th><th>التأخير</th><th>الخصم</th><th>الإجراء</th></tr>`+rec.map(a=>`<tr><td><div class="flex-c"><div class="av">${av(empName(a.empId))}</div>${empName(a.empId)}</div></td><td>${a.date}</td><td>${a.mins} دقيقة</td><td style="color:var(--danger-text)">${+a.deduct>0?fmt(a.deduct)+' ر':'—'}</td><td>${badge(a.action)}</td></tr>`).join('')+'</table>';
+  document.getElementById('d-att').innerHTML=rec.length?
+    '<div style="overflow-x:auto"><table><tr><th>الموظف</th><th>التاريخ</th><th>التأخير</th><th>الخصم</th><th>الإجراء</th></tr>'+
+    rec.map(a=>'<tr><td><div class="fc"><div class="av">'+av(en(a.empId))+'</div>'+en(a.empId)+'</div></td><td>'+a.date+'</td><td>'+a.mins+' دقيقة</td><td style="color:#f87171">'+(+a.deduct>0?fmt(a.deduct)+' ر':'—')+'</td><td>'+bdg(a.action)+'</td></tr>').join('')+
+    '</table></div>':'<div class="empty">لا يوجد سجل تأخيرات</div>';
 }
 
 function renderEmp(){
   const w=document.getElementById('emp-wrap');
-  if(!db.employees.length){w.innerHTML='<div class="empty">لا يوجد موظفون. ابدأ بإضافة موظف.</div>';return;}
-  w.innerHTML=`<div style="overflow-x:auto"><table><tr><th>الموظف</th><th>الجنسية</th><th>المسمى</th><th>القسم</th><th>الراتب</th><th>تاريخ التعيين</th><th>الحالة</th><th></th></tr>`
-    +db.employees.map(e=>`<tr><td><div class="flex-c"><div class="av">${av(e.name)}</div>${e.name}</div></td><td>${e.nat||'—'}</td><td>${e.title||'—'}</td><td>${e.dept||'—'}</td><td>${fmt(e.salary)} ر</td><td>${e.hire||'—'}</td><td>${badge(e.status||'نشط')}</td><td><div class="flex-c"><button class="btn sm" onclick="editEmp('${e.id}')">✏️</button><button class="btn sm danger" onclick="delEmp('${e.id}')">🗑</button></div></td></tr>`).join('')+'</table></div>';
+  if(!db.employees.length){w.innerHTML='<div class="empty">لا يوجد موظفون.</div>';return;}
+  w.innerHTML='<div style="overflow-x:auto"><table><tr><th>الموظف</th><th>الجنسية</th><th>المسمى</th><th>القسم</th><th>الراتب</th><th>الصرف</th><th>الحالة</th><th></th></tr>'+
+    db.employees.map(e=>'<tr><td><div class="fc"><div class="av">'+av(e.name)+'</div>'+e.name+'</div></td><td>'+(e.nat||'—')+'</td><td>'+(e.title||'—')+'</td><td>'+(e.dept||'—')+'</td><td>'+fmt(e.salary)+' ر</td><td><span class="badge '+(e.pay==='bank'?'bi':'bs')+'">'+(e.pay==='bank'?'🏦 بنك':'💵 كاش')+'</span></td><td>'+bdg(e.status||'نشط')+'</td><td><div class="fc"><button class="btn sm blu" onclick="printRec(\''+e.id+'\')">🖨️</button><button class="btn sm" onclick="editEmp(\''+e.id+'\')">✏️</button><button class="btn sm red" onclick="delEmp(\''+e.id+'\')">🗑</button></div></td></tr>').join('')+
+    '</table></div>';
 }
 
 function saveEmp(){
-  const id=document.getElementById('emp-eid').value||uid();
-  const emp={id,name:document.getElementById('emp-name').value,nat:document.getElementById('emp-nat').value,idno:document.getElementById('emp-idno').value,phone:document.getElementById('emp-phone').value,title:document.getElementById('emp-title').value,dept:document.getElementById('emp-dept').value,salary:document.getElementById('emp-salary').value,housing:document.getElementById('emp-housing').value,transport:document.getElementById('emp-transport').value,hire:document.getElementById('emp-hire').value,status:document.getElementById('emp-status').value};
+  const id=document.getElementById('e-id').value||uid();
+  const emp={id,name:document.getElementById('e-name').value,nat:document.getElementById('e-nat').value,idno:document.getElementById('e-idno').value,phone:document.getElementById('e-phone').value,title:document.getElementById('e-title').value,dept:document.getElementById('e-dept').value,salary:document.getElementById('e-sal').value,housing:document.getElementById('e-hou').value,transport:document.getElementById('e-trn').value,hire:document.getElementById('e-hire').value,insurance:document.getElementById('e-ins').value,pay:document.getElementById('e-pay').value,bank:document.getElementById('e-bank').value,status:document.getElementById('e-stat').value};
   if(!emp.name.trim()){alert('أدخل اسم الموظف');return;}
   const idx=db.employees.findIndex(e=>e.id===id);
   if(idx>=0)db.employees[idx]=emp;else db.employees.push(emp);
-  save();renderAll();closeModal('emp-modal');notify('✅ تم حفظ بيانات الموظف');
-  document.getElementById('emp-eid').value='';
+  save();renderAll();closeM('m-emp');ntf('✅ تم حفظ بيانات الموظف');
+  document.getElementById('e-id').value='';
 }
 function editEmp(id){
   const e=db.employees.find(x=>x.id===id);if(!e)return;
-  document.getElementById('emp-eid').value=e.id;
-  ['name','nat','idno','phone','title','dept','salary','housing','transport','hire'].forEach(k=>document.getElementById('emp-'+k).value=e[k]||'');
-  document.getElementById('emp-status').value=e.status||'نشط';
-  openModal('emp-modal');
+  document.getElementById('e-id').value=e.id;
+  ['name','nat','idno','phone','title','dept','hire','ins','bank'].forEach(k=>{const el=document.getElementById('e-'+k);if(el)el.value=e[k]||'';});
+  document.getElementById('e-sal').value=e.salary||'';
+  document.getElementById('e-hou').value=e.housing||'';
+  document.getElementById('e-trn').value=e.transport||'';
+  document.getElementById('e-pay').value=e.pay||'cash';
+  document.getElementById('e-stat').value=e.status||'نشط';
+  openM('m-emp');
 }
-function delEmp(id){if(!confirm('حذف الموظف وجميع بياناته؟'))return;db.employees=db.employees.filter(e=>e.id!==id);['iqama','deductions','bonuses','traffic','leaves','attendance'].forEach(k=>{db[k]=db[k].filter(x=>x.empId!==id);});save();renderAll();notify('تم الحذف');}
+function delEmp(id){if(!confirm('حذف الموظف وجميع بياناته؟'))return;db.employees=db.employees.filter(e=>e.id!==id);['iqama','deductions','bonuses','traffic','leaves','attendance'].forEach(k=>{db[k]=db[k].filter(x=>x.empId!==id);});save();renderAll();ntf('تم الحذف');}
 
 function renderIq(){
   const w=document.getElementById('iq-wrap');
   if(!db.iqama.length){w.innerHTML='<div class="empty">لا يوجد سجلات إقامة.</div>';return;}
   const warn=db.settings.iqamaWarn||60;
-  w.innerHTML=`<div style="overflow-x:auto"><table><tr><th>الموظف</th><th>رقم الإقامة</th><th>تاريخ الإصدار</th><th>تاريخ الانتهاء</th><th>المتبقي</th><th>الحالة</th><th></th></tr>`
-    +db.iqama.map(q=>{
-      const d=daysDiff(q.expiry);
-      let st,cls,rem;
-      if(d===null){st='—';cls='bg';rem='—';}
-      else if(d<0){st='منتهية';cls='bd';rem=`منذ ${Math.abs(d)} يوم`;}
-      else if(d<warn){st='تنتهي قريباً';cls='bw';rem=`${d} يوم`;}
-      else{st='سارية';cls='bs';rem=`${d} يوم`;}
-      return`<tr><td><div class="flex-c"><div class="av">${av(empName(q.empId))}</div>${empName(q.empId)}</div></td><td>${q.no||'—'}</td><td>${q.issue||'—'}</td><td>${q.expiry||'—'}</td><td style="color:${d!==null&&d<warn?'var(--warning-text)':''}">${rem}</td><td><span class="badge ${cls}">${st}</span></td><td><div class="flex-c"><button class="btn sm" onclick="editIq('${q.id}')">✏️</button><button class="btn sm danger" onclick="delItem('iqama','${q.id}')">🗑</button></div></td></tr>`;
+  w.innerHTML='<div style="overflow-x:auto"><table><tr><th>الموظف</th><th>رقم الإقامة</th><th>تاريخ الإصدار</th><th>تاريخ الانتهاء</th><th>المتبقي</th><th>الحالة</th><th></th></tr>'+
+    db.iqama.map(q=>{
+      const d=dd(q.expiry);let st,cl,rem;
+      if(d===null){st='—';cl='bg';rem='—';}
+      else if(d<0){st='منتهية';cl='bd';rem='منذ '+Math.abs(d)+' يوم';}
+      else if(d<warn){st='تنتهي قريباً';cl='bw';rem=d+' يوم';}
+      else{st='سارية';cl='bs';rem=d+' يوم';}
+      return'<tr><td><div class="fc"><div class="av">'+av(en(q.empId))+'</div>'+en(q.empId)+'</div></td><td>'+(q.no||'—')+'</td><td>'+(q.issue||'—')+'</td><td>'+(q.expiry||'—')+'</td><td>'+rem+'</td><td><span class="badge '+cl+'">'+st+'</span></td><td><div class="fc"><button class="btn sm" onclick="editIq(\''+q.id+'\')">✏️</button><button class="btn sm red" onclick="delIt(\'iqama\',\''+q.id+'\')">🗑</button></div></td></tr>';
     }).join('')+'</table></div>';
 }
 function saveIq(){
-  const id=document.getElementById('iq-eid').value||uid();
-  const obj={id,empId:document.getElementById('iq-emp').value,no:document.getElementById('iq-no').value,issue:document.getElementById('iq-issue').value,expiry:document.getElementById('iq-expiry').value,cost:document.getElementById('iq-cost').value,notes:document.getElementById('iq-notes').value};
+  const id=document.getElementById('iq-id').value||uid();
+  const obj={id,empId:document.getElementById('iq-emp').value,no:document.getElementById('iq-no').value,issue:document.getElementById('iq-iss').value,expiry:document.getElementById('iq-exp').value,cost:document.getElementById('iq-cost').value,notes:document.getElementById('iq-note').value};
   if(!obj.empId){alert('اختر الموظف');return;}
   const idx=db.iqama.findIndex(x=>x.id===id);
   if(idx>=0)db.iqama[idx]=obj;else db.iqama.push(obj);
-  save();renderIq();renderDash();closeModal('iq-modal');notify('✅ تم الحفظ');document.getElementById('iq-eid').value='';
+  save();renderIq();renderDash();closeM('m-iq');ntf('✅ تم الحفظ');document.getElementById('iq-id').value='';
 }
 function editIq(id){
   const q=db.iqama.find(x=>x.id===id);if(!q)return;
-  document.getElementById('iq-eid').value=q.id;
-  openModal('iq-modal');
+  document.getElementById('iq-id').value=q.id;
+  openM('m-iq');
   setTimeout(()=>{
     document.getElementById('iq-emp').value=q.empId;
     document.getElementById('iq-no').value=q.no||'';
-    document.getElementById('iq-issue').value=q.issue||'';
-    document.getElementById('iq-expiry').value=q.expiry||'';
+    document.getElementById('iq-iss').value=q.issue||'';
+    document.getElementById('iq-exp').value=q.expiry||'';
     document.getElementById('iq-cost').value=q.cost||'';
-    document.getElementById('iq-notes').value=q.notes||'';
+    document.getElementById('iq-note').value=q.notes||'';
   },50);
 }
 
 function renderDoc(){
   const w=document.getElementById('doc-wrap');
-  if(!db.documents.length){w.innerHTML='<div class="empty">لا يوجد وثائق مسجلة.</div>';return;}
-  w.innerHTML=`<div style="overflow-x:auto"><table><tr><th>اسم الوثيقة</th><th>النوع</th><th>تاريخ الرفع</th><th>تاريخ الانتهاء</th><th>الحالة</th><th></th></tr>`
-    +db.documents.map(d=>{
-      const rem=d.expiry?daysDiff(d.expiry):null;
-      let st='سارية',cl='bs';
-      if(rem!==null){if(rem<0){st='منتهي';cl='bd';}else if(rem<60){st='تنتهي قريباً';cl='bw';}}
-      return`<tr><td>📄 ${d.name}</td><td>${d.type}</td><td>${d.upload||'—'}</td><td>${d.expiry||'—'}</td><td><span class="badge ${cl}">${st}</span></td><td><div class="flex-c"><button class="btn sm" onclick="editDoc('${d.id}')">✏️</button><button class="btn sm danger" onclick="delItem('documents','${d.id}')">🗑</button></div></td></tr>`;
-    }).join('')+'</table></div>';
+  if(!db.documents.length){w.innerHTML='<div class="empty">لا يوجد وثائق.</div>';return;}
+  let rows='';
+  db.documents.forEach(function(d){
+    const rem=d.expiry?dd(d.expiry):null;
+    let st='سارية',cl='bs';
+    if(rem!==null){if(rem<0){st='منتهي';cl='bd';}else if(rem<60){st='تنتهي قريباً';cl='bw';}}
+    const hasFile=!!d.fileData;
+    rows+='<tr>';
+    rows+='<td><div class="fc">'+(hasFile?'📎':'📄')+' '+d.name+(hasFile?'<span style="font-size:10px;color:rgba(255,255,255,.3)"> '+d.fileName+'</span>':'')+'</div></td>';
+    rows+='<td>'+d.type+'</td>';
+    rows+='<td>'+(d.upload||'—')+'</td>';
+    rows+='<td>'+(d.expiry||'—')+'</td>';
+    rows+='<td><span class="badge '+cl+'">'+st+'</span></td>';
+    rows+='<td><div class="fc">';
+    if(hasFile){rows+='<button class="btn sm grn" data-did="'+d.id+'" onclick="downloadDoc(this.dataset.did)">⬇️ تحميل</button>';}
+    rows+='<button class="btn sm" data-did="'+d.id+'" onclick="editDoc(this.dataset.did)">✏️</button>';
+    rows+='<button class="btn sm red" onclick="delIt('+"'documents','"+d.id+"')"+'">🗑</button>';
+    rows+='</div></td></tr>';
+  });
+  w.innerHTML='<div style="overflow-x:auto"><table><tr><th>الوثيقة</th><th>النوع</th><th>تاريخ الرفع</th><th>تاريخ الانتهاء</th><th>الحالة</th><th></th></tr>'+rows+'</table></div>';
 }
+
 function saveDoc(){
-  const id=document.getElementById('doc-eid').value||uid();
-  const obj={id,name:document.getElementById('doc-name').value,type:document.getElementById('doc-type').value,upload:document.getElementById('doc-upload').value,expiry:document.getElementById('doc-expiry').value,notes:document.getElementById('doc-notes').value};
+  const id=document.getElementById('doc-id').value||uid();
+  const obj={id,name:document.getElementById('doc-name').value,type:document.getElementById('doc-type').value,upload:document.getElementById('doc-up').value,expiry:document.getElementById('doc-exp').value,notes:document.getElementById('doc-note').value};
   if(!obj.name.trim()){alert('أدخل اسم الوثيقة');return;}
   const idx=db.documents.findIndex(x=>x.id===id);
   if(idx>=0)db.documents[idx]=obj;else db.documents.push(obj);
-  save();renderDoc();closeModal('doc-modal');notify('✅ تم الحفظ');document.getElementById('doc-eid').value='';
+  save();renderDoc();closeM('m-doc');ntf('✅ تم الحفظ');document.getElementById('doc-id').value='';
 }
 function editDoc(id){
+  if(!id)return;
   const d=db.documents.find(x=>x.id===id);if(!d)return;
-  document.getElementById('doc-eid').value=d.id;
+  document.getElementById('doc-id').value=d.id;
   document.getElementById('doc-name').value=d.name||'';
   document.getElementById('doc-type').value=d.type||'رسمي';
-  document.getElementById('doc-upload').value=d.upload||'';
-  document.getElementById('doc-expiry').value=d.expiry||'';
-  document.getElementById('doc-notes').value=d.notes||'';
-  openModal('doc-modal');
+  document.getElementById('doc-up').value=d.upload||'';
+  document.getElementById('doc-exp').value=d.expiry||'';
+  document.getElementById('doc-note').value=d.notes||'';
+  openM('m-doc');
 }
 
-function renderSalaries(){
-  const mn=parseInt(document.getElementById('sal-month').value);
-  const yr=parseInt(document.getElementById('sal-year').value);
-  const months=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-  document.getElementById('sal-title').textContent=`💵 كشف رواتب — ${months[mn]} ${yr}`;
-  const active=db.employees.filter(e=>e.status==='نشط');
-  const inM=arr=>arr.filter(x=>{if(!x.date)return false;const d=new Date(x.date);return d.getMonth()===mn&&d.getFullYear()===yr;});
-  const rows=active.map(e=>{
-    const gross=(+e.salary||0)+(+e.housing||0)+(+e.transport||0);
-    const ded=inM(db.deductions.filter(d=>d.empId===e.id)).reduce((a,d)=>a+(+d.amount||0),0);
-    const att=inM(db.attendance.filter(a=>a.empId===e.id)).reduce((a,x)=>a+(+x.deduct||0),0);
-    const traf=inM(db.traffic.filter(t=>t.empId===e.id)).reduce((a,t)=>a+(t.resp==='full'?+t.amount:t.resp==='half'?Math.round(+t.amount/2):0),0);
-    const bon=inM(db.bonuses.filter(b=>b.empId===e.id)).reduce((a,b)=>a+(+b.amount||0),0);
-    const totDed=ded+att+traf;
-    return{e,gross,totDed,bon,net:gross-totDed+bon};
-  });
-  const tG=rows.reduce((a,r)=>a+r.gross,0),tD=rows.reduce((a,r)=>a+r.totDed,0),tB=rows.reduce((a,r)=>a+r.bon,0),tN=rows.reduce((a,r)=>a+r.net,0);
-  document.getElementById('sal-metrics').innerHTML=`
-    <div class="metric"><div class="metric-lbl">إجمالي الرواتب</div><div class="metric-val">${fmt(tG)}</div><div class="metric-sub">ريال</div></div>
-    <div class="metric"><div class="metric-lbl">الخصومات</div><div class="metric-val" style="color:var(--danger-text)">${fmt(tD)}</div><div class="metric-sub">ريال</div></div>
-    <div class="metric"><div class="metric-lbl">المكافآت</div><div class="metric-val" style="color:var(--success-text)">${fmt(tB)}</div><div class="metric-sub">ريال</div></div>
-    <div class="metric"><div class="metric-lbl">الصافي للصرف</div><div class="metric-val" style="color:var(--info-text)">${fmt(tN)}</div><div class="metric-sub">ريال</div></div>`;
+function renderSal(){
+  const m=parseInt(document.getElementById('sm').value);
+  const y=parseInt(document.getElementById('sy').value);
+  document.getElementById('sal-title').textContent='💵 كشف رواتب — '+MN[m]+' '+y;
+  const rows=db.employees.filter(e=>e.status==='نشط').map(e=>getSal(e.id,m,y)).filter(Boolean);
+  const tG=rows.reduce((a,r)=>a+r.gross,0),tD=rows.reduce((a,r)=>a+r.ded,0),tB=rows.reduce((a,r)=>a+r.bon,0),tN=rows.reduce((a,r)=>a+r.net,0);
+  document.getElementById('sal-metrics').innerHTML=
+    '<div class="metric"><div class="metric-lbl">إجمالي الرواتب</div><div class="metric-val">'+fmt(tG)+'</div><div class="metric-sub">ريال</div></div>'+
+    '<div class="metric"><div class="metric-lbl">الخصومات</div><div class="metric-val" style="color:#f87171">'+fmt(tD)+'</div><div class="metric-sub">ريال</div></div>'+
+    '<div class="metric"><div class="metric-lbl">المكافآت</div><div class="metric-val" style="color:#34d399">'+fmt(tB)+'</div><div class="metric-sub">ريال</div></div>'+
+    '<div class="metric"><div class="metric-lbl">الصافي للصرف</div><div class="metric-val" style="color:var(--gold)">'+fmt(tN)+'</div><div class="metric-sub">ريال</div></div>';
   const w=document.getElementById('sal-wrap');
   if(!rows.length){w.innerHTML='<div class="empty">لا يوجد موظفون نشطون.</div>';return;}
-  w.innerHTML=`<div style="overflow-x:auto"><table><tr><th>الموظف</th><th>القسم</th><th>الراتب</th><th>بدل سكن</th><th>بدل نقل</th><th>خصومات</th><th>مكافآت</th><th>الصافي</th></tr>`
-    +rows.map(r=>`<tr><td><div class="flex-c"><div class="av">${av(r.e.name)}</div>${r.e.name}</div></td><td>${r.e.dept||'—'}</td><td>${fmt(r.e.salary)}</td><td>${fmt(r.e.housing)}</td><td>${fmt(r.e.transport)}</td><td style="color:var(--danger-text)">${r.totDed>0?'- '+fmt(r.totDed):'—'}</td><td style="color:var(--success-text)">${r.bon>0?'+ '+fmt(r.bon):'—'}</td><td style="font-weight:700">${fmt(r.net)} ر</td></tr>`).join('')
-    +`<tr style="background:var(--bg3)"><td colspan="5" style="font-weight:700">الإجمالي</td><td style="color:var(--danger-text);font-weight:700">- ${fmt(tD)}</td><td style="color:var(--success-text);font-weight:700">+ ${fmt(tB)}</td><td style="color:var(--info-text);font-weight:700">${fmt(tN)} ر</td></tr>`
-    +'</table></div>';
+  w.innerHTML='<div style="overflow-x:auto"><table><tr><th>الموظف</th><th>القسم</th><th>الراتب</th><th>بدل سكن</th><th>بدل نقل</th><th>خصومات</th><th>مكافآت</th><th>الصافي</th><th>الصرف</th><th>إيصال</th></tr>'+
+    rows.map(r=>'<tr><td><div class="fc"><div class="av">'+av(r.e.name)+'</div>'+r.e.name+'</div></td><td>'+(r.e.dept||'—')+'</td><td>'+fmt(r.e.salary)+'</td><td>'+fmt(r.e.housing)+'</td><td>'+fmt(r.e.transport)+'</td><td style="color:#f87171">'+(r.ded>0?'- '+fmt(r.ded):'—')+'</td><td style="color:#34d399">'+(r.bon>0?'+ '+fmt(r.bon):'—')+'</td><td style="font-weight:700;color:var(--gold)">'+fmt(r.net)+' ر</td><td><span class="badge '+(r.e.pay==='bank'?'bi':'bs')+'">'+(r.e.pay==='bank'?'🏦 بنك':'💵 كاش')+'</span></td><td><button class="btn sm gold" onclick="printRec(\''+r.e.id+'\','+m+','+y+')">🖨️</button></td></tr>').join('')+
+    '<tr style="border-top:1px solid rgba(255,255,255,0.1)"><td colspan="5" style="font-weight:700">الإجمالي</td><td style="color:#f87171;font-weight:700">- '+fmt(tD)+'</td><td style="color:#34d399;font-weight:700">+ '+fmt(tB)+'</td><td style="color:var(--gold);font-weight:700">'+fmt(tN)+' ر</td><td colspan="2"></td></tr>'+
+    '</table></div>';
+}
+
+function renderRep(){
+  const m=parseInt(document.getElementById('rm').value);
+  const y=parseInt(document.getElementById('ry').value);
+  const rows=db.employees.filter(e=>e.status==='نشط').map(e=>getSal(e.id,m,y)).filter(Boolean);
+  const bank=rows.filter(r=>r.e.pay==='bank');
+  const cash=rows.filter(r=>r.e.pay!=='bank');
+  const tN=rows.reduce((a,r)=>a+r.net,0),tD=rows.reduce((a,r)=>a+r.ded,0),tBank=bank.reduce((a,r)=>a+r.net,0),tCash=cash.reduce((a,r)=>a+r.net,0);
+  document.getElementById('rep-metrics').innerHTML=
+    '<div class="metric"><div class="metric-lbl">إجمالي الصرف</div><div class="metric-val" style="color:var(--gold)">'+fmt(tN)+'</div><div class="metric-sub">ريال</div></div>'+
+    '<div class="metric"><div class="metric-lbl">تحويل بنكي</div><div class="metric-val" style="color:#60a5fa">'+fmt(tBank)+'</div><div class="metric-sub">'+bank.length+' موظف</div></div>'+
+    '<div class="metric"><div class="metric-lbl">كاش</div><div class="metric-val" style="color:#34d399">'+fmt(tCash)+'</div><div class="metric-sub">'+cash.length+' موظف</div></div>'+
+    '<div class="metric"><div class="metric-lbl">الخصومات</div><div class="metric-val" style="color:#f87171">'+fmt(tD)+'</div><div class="metric-sub">ريال</div></div>';
+  document.getElementById('rep-bank').innerHTML=bank.length?
+    '<table><tr><th>الموظف</th><th>رقم الحساب</th><th>الصافي</th></tr>'+bank.map(r=>'<tr><td><div class="fc"><div class="av">'+av(r.e.name)+'</div>'+r.e.name+'</div></td><td style="color:#60a5fa">'+(r.e.bank||'—')+'</td><td style="font-weight:700;color:var(--gold)">'+fmt(r.net)+' ر</td></tr>').join('')+'<tr><td colspan="2" style="font-weight:700">الإجمالي</td><td style="font-weight:700;color:var(--gold)">'+fmt(tBank)+' ر</td></tr></table>':
+    '<div class="empty">لا يوجد</div>';
+  document.getElementById('rep-cash').innerHTML=cash.length?
+    '<table><tr><th>الموظف</th><th>الصافي</th><th>إيصال</th></tr>'+cash.map(r=>'<tr><td><div class="fc"><div class="av">'+av(r.e.name)+'</div>'+r.e.name+'</div></td><td style="font-weight:700;color:var(--gold)">'+fmt(r.net)+' ر</td><td><button class="btn sm gold" onclick="printRec(\''+r.e.id+'\','+m+','+y+')">🖨️</button></td></tr>').join('')+'<tr><td style="font-weight:700">الإجمالي</td><td style="font-weight:700;color:var(--gold)">'+fmt(tCash)+' ر</td><td></td></tr></table>':
+    '<div class="empty">لا يوجد</div>';
+  document.getElementById('rep-all').innerHTML=rows.length?
+    '<div style="overflow-x:auto"><table><tr><th>الموظف</th><th>القسم</th><th>الراتب</th><th>خصومات</th><th>مكافآت</th><th>الصافي</th><th>الصرف</th><th>إيصال</th></tr>'+
+    rows.map(r=>'<tr><td><div class="fc"><div class="av">'+av(r.e.name)+'</div>'+r.e.name+'</div></td><td>'+(r.e.dept||'—')+'</td><td>'+fmt(r.gross)+'</td><td style="color:#f87171">'+(r.ded>0?'- '+fmt(r.ded):'—')+'</td><td style="color:#34d399">'+(r.bon>0?'+ '+fmt(r.bon):'—')+'</td><td style="font-weight:700;color:var(--gold)">'+fmt(r.net)+' ر</td><td><span class="badge '+(r.e.pay==='bank'?'bi':'bs')+'">'+(r.e.pay==='bank'?'🏦 بنك':'💵 كاش')+'</span></td><td><button class="btn sm gold" onclick="printRec(\''+r.e.id+'\','+m+','+y+')">🖨️</button></td></tr>').join('')+'</table></div>':
+    '<div class="empty">لا يوجد بيانات.</div>';
 }
 
 function renderDed(){
   const w=document.getElementById('ded-wrap');
-  if(!db.deductions.length){w.innerHTML='<div class="empty">لا يوجد خصومات أو جزاءات.</div>';return;}
+  if(!db.deductions.length){w.innerHTML='<div class="empty">لا يوجد خصومات.</div>';return;}
   const tot=db.deductions.reduce((a,d)=>a+(+d.amount||0),0);
-  w.innerHTML=`<div style="margin-bottom:10px;padding:8px 12px;background:var(--danger-bg);color:var(--danger-text);border-radius:var(--r);font-size:12px;font-weight:600">إجمالي الخصومات: ${fmt(tot)} ريال</div><div style="overflow-x:auto"><table><tr><th>الموظف</th><th>النوع</th><th>التاريخ</th><th>المبلغ</th><th>السبب</th><th></th></tr>`
-    +[...db.deductions].reverse().map(d=>`<tr><td><div class="flex-c"><div class="av">${av(empName(d.empId))}</div>${empName(d.empId)}</div></td><td>${d.type}</td><td>${d.date}</td><td style="color:var(--danger-text);font-weight:600">${fmt(d.amount)} ر</td><td>${d.reason||'—'}</td><td><button class="btn sm danger" onclick="delItem('deductions','${d.id}')">🗑</button></td></tr>`).join('')+'</table></div>';
+  w.innerHTML='<div style="margin-bottom:10px;padding:9px 13px;background:rgba(248,113,113,0.12);color:#f87171;border-radius:var(--r);font-size:12px;font-weight:700">إجمالي الخصومات: '+fmt(tot)+' ريال</div>'+
+    '<div style="overflow-x:auto"><table><tr><th>الموظف</th><th>النوع</th><th>التاريخ</th><th>المبلغ</th><th>السبب</th><th></th></tr>'+
+    [...db.deductions].reverse().map(d=>'<tr><td><div class="fc"><div class="av">'+av(en(d.empId))+'</div>'+en(d.empId)+'</div></td><td>'+d.type+'</td><td>'+d.date+'</td><td style="color:#f87171;font-weight:700">'+fmt(d.amount)+' ر</td><td>'+(d.reason||'—')+'</td><td><button class="btn sm red" onclick="delIt(\'deductions\',\''+d.id+'\')">🗑</button></td></tr>').join('')+
+    '</table></div>';
 }
 function saveDed(){
   const empId=document.getElementById('ded-emp').value;if(!empId){alert('اختر الموظف');return;}
-  db.deductions.push({id:uid(),empId,type:document.getElementById('ded-type').value,date:document.getElementById('ded-date').value,amount:document.getElementById('ded-amount').value,reason:document.getElementById('ded-reason').value});
-  save();renderDed();renderDash();renderSalaries();closeModal('ded-modal');notify('✅ تم إضافة الخصم');
+  db.deductions.push({id:uid(),empId,type:document.getElementById('ded-type').value,date:document.getElementById('ded-dt').value,amount:document.getElementById('ded-amt').value,reason:document.getElementById('ded-rsn').value});
+  save();renderDed();renderDash();renderSal();renderRep();closeM('m-ded');ntf('✅ تم إضافة الخصم');
 }
 
 function renderBon(){
   const w=document.getElementById('bon-wrap');
   if(!db.bonuses.length){w.innerHTML='<div class="empty">لا يوجد مكافآت.</div>';return;}
   const tot=db.bonuses.reduce((a,b)=>a+(+b.amount||0),0);
-  w.innerHTML=`<div style="margin-bottom:10px;padding:8px 12px;background:var(--success-bg);color:var(--success-text);border-radius:var(--r);font-size:12px;font-weight:600">إجمالي المكافآت: ${fmt(tot)} ريال</div><div style="overflow-x:auto"><table><tr><th>الموظف</th><th>النوع</th><th>التاريخ</th><th>المبلغ</th><th>السبب</th><th></th></tr>`
-    +[...db.bonuses].reverse().map(b=>`<tr><td><div class="flex-c"><div class="av">${av(empName(b.empId))}</div>${empName(b.empId)}</div></td><td>${b.type}</td><td>${b.date}</td><td style="color:var(--success-text);font-weight:600">+ ${fmt(b.amount)} ر</td><td>${b.reason||'—'}</td><td><button class="btn sm danger" onclick="delItem('bonuses','${b.id}')">🗑</button></td></tr>`).join('')+'</table></div>';
+  w.innerHTML='<div style="margin-bottom:10px;padding:9px 13px;background:rgba(52,211,153,0.12);color:#34d399;border-radius:var(--r);font-size:12px;font-weight:700">إجمالي المكافآت: '+fmt(tot)+' ريال</div>'+
+    '<div style="overflow-x:auto"><table><tr><th>الموظف</th><th>النوع</th><th>التاريخ</th><th>المبلغ</th><th>السبب</th><th></th></tr>'+
+    [...db.bonuses].reverse().map(b=>'<tr><td><div class="fc"><div class="av">'+av(en(b.empId))+'</div>'+en(b.empId)+'</div></td><td>'+b.type+'</td><td>'+b.date+'</td><td style="color:#34d399;font-weight:700">+ '+fmt(b.amount)+' ر</td><td>'+(b.reason||'—')+'</td><td><button class="btn sm red" onclick="delIt(\'bonuses\',\''+b.id+'\')">🗑</button></td></tr>').join('')+
+    '</table></div>';
 }
 function saveBon(){
   const empId=document.getElementById('bon-emp').value;if(!empId){alert('اختر الموظف');return;}
-  db.bonuses.push({id:uid(),empId,type:document.getElementById('bon-type').value,date:document.getElementById('bon-date').value,amount:document.getElementById('bon-amount').value,reason:document.getElementById('bon-reason').value});
-  save();renderBon();renderDash();renderSalaries();closeModal('bon-modal');notify('✅ تم إضافة المكافأة');
+  db.bonuses.push({id:uid(),empId,type:document.getElementById('bon-type').value,date:document.getElementById('bon-dt').value,amount:document.getElementById('bon-amt').value,reason:document.getElementById('bon-rsn').value});
+  save();renderBon();renderDash();renderSal();renderRep();closeM('m-bon');ntf('✅ تم إضافة المكافأة');
 }
 
 function renderTraf(){
   const w=document.getElementById('traf-wrap');
-  if(!db.traffic.length){w.innerHTML='<div class="empty">لا يوجد مخالفات مرورية.</div>';return;}
-  const lbl=r=>r==='full'?'على الموظف':r==='half'?'مشتركة':'على الشركة';
-  w.innerHTML=`<div style="overflow-x:auto"><table><tr><th>الموظف</th><th>اللوحة</th><th>النوع</th><th>التاريخ</th><th>المبلغ</th><th>التحمل</th><th></th></tr>`
-    +[...db.traffic].reverse().map(t=>`<tr><td><div class="flex-c"><div class="av">${av(empName(t.empId))}</div>${empName(t.empId)}</div></td><td>${t.plate||'—'}</td><td>${t.type}</td><td>${t.date}</td><td>${fmt(t.amount)} ر</td><td>${lbl(t.resp)}</td><td><button class="btn sm danger" onclick="delItem('traffic','${t.id}')">🗑</button></td></tr>`).join('')+'</table></div>';
+  if(!db.traffic.length){w.innerHTML='<div class="empty">لا يوجد مخالفات.</div>';return;}
+  w.innerHTML='<div style="overflow-x:auto"><table><tr><th>الموظف</th><th>اللوحة</th><th>النوع</th><th>التاريخ</th><th>المبلغ</th><th>التحمل</th><th></th></tr>'+
+    [...db.traffic].reverse().map(t=>'<tr><td><div class="fc"><div class="av">'+av(en(t.empId))+'</div>'+en(t.empId)+'</div></td><td>'+(t.plate||'—')+'</td><td>'+t.type+'</td><td>'+t.date+'</td><td>'+fmt(t.amount)+' ر</td><td>'+(t.resp==='full'?'على الموظف':t.resp==='half'?'مشتركة':'على الشركة')+'</td><td><button class="btn sm red" onclick="delIt(\'traffic\',\''+t.id+'\')">🗑</button></td></tr>').join('')+
+    '</table></div>';
 }
 function saveTraf(){
   const empId=document.getElementById('traf-emp').value;if(!empId){alert('اختر الموظف');return;}
-  db.traffic.push({id:uid(),empId,plate:document.getElementById('traf-plate').value,type:document.getElementById('traf-type').value,date:document.getElementById('traf-date').value,amount:document.getElementById('traf-amount').value,resp:document.getElementById('traf-resp').value});
-  save();renderTraf();renderSalaries();closeModal('traf-modal');notify('✅ تم إضافة المخالفة');
+  db.traffic.push({id:uid(),empId,plate:document.getElementById('traf-pl').value,type:document.getElementById('traf-type').value,date:document.getElementById('traf-dt').value,amount:document.getElementById('traf-amt').value,resp:document.getElementById('traf-resp').value});
+  save();renderTraf();renderSal();closeM('m-traf');ntf('✅ تم إضافة المخالفة');
 }
 
-function renderLeave(){
+function renderLv(){
   const w=document.getElementById('leave-wrap');
   if(!db.leaves.length){w.innerHTML='<div class="empty">لا يوجد طلبات إجازة.</div>';return;}
   const days=(f,t)=>f&&t?Math.max(1,Math.round((new Date(t)-new Date(f))/86400000)+1):'—';
-  const bstyle=s=>{const map={'موافق':'bs','مرفوض':'bd','انتظار الموافقة':'bw'};return map[s]||'bg';};
-  w.innerHTML=`<div style="overflow-x:auto"><table><tr><th>الموظف</th><th>النوع</th><th>من</th><th>إلى</th><th>الأيام</th><th>الحالة</th><th>إجراءات</th></tr>`
-    +[...db.leaves].reverse().map(l=>`<tr><td><div class="flex-c"><div class="av">${av(empName(l.empId))}</div>${empName(l.empId)}</div></td><td>${l.type}</td><td>${l.from||'—'}</td><td>${l.to||'—'}</td><td>${days(l.from,l.to)}</td><td><span class="badge ${bstyle(l.status)}">${l.status}</span></td><td><div class="flex-c">${l.status==='انتظار الموافقة'?`<button class="btn sm success" onclick="approveLeave('${l.id}')">✓</button><button class="btn sm danger" onclick="rejectLeave('${l.id}')">✕</button>`:''}<button class="btn sm danger" onclick="delItem('leaves','${l.id}')">🗑</button></div></td></tr>`).join('')+'</table></div>';
+  w.innerHTML='<div style="overflow-x:auto"><table><tr><th>الموظف</th><th>النوع</th><th>من</th><th>إلى</th><th>الأيام</th><th>الحالة</th><th>إجراءات</th></tr>'+
+    [...db.leaves].reverse().map(l=>'<tr><td><div class="fc"><div class="av">'+av(en(l.empId))+'</div>'+en(l.empId)+'</div></td><td>'+l.type+'</td><td>'+(l.from||'—')+'</td><td>'+(l.to||'—')+'</td><td>'+days(l.from,l.to)+'</td><td>'+bdg(l.status)+'</td><td><div class="fc">'+(l.status==='انتظار الموافقة'?'<button class="btn sm grn" onclick="updLv(\''+l.id+'\',\'موافق\')">✓</button><button class="btn sm red" onclick="updLv(\''+l.id+'\',\'مرفوض\')">✕</button>':'')+'<button class="btn sm red" onclick="delIt(\'leaves\',\''+l.id+'\')">🗑</button></div></td></tr>').join('')+
+    '</table></div>';
 }
-function saveLeave(){
-  const empId=document.getElementById('leave-emp').value;if(!empId){alert('اختر الموظف');return;}
-  db.leaves.push({id:uid(),empId,type:document.getElementById('leave-type').value,from:document.getElementById('leave-from').value,to:document.getElementById('leave-to').value,status:document.getElementById('leave-status').value,notes:document.getElementById('leave-notes').value});
-  save();renderLeave();renderDash();closeModal('leave-modal');notify('✅ تم إضافة طلب الإجازة');
+function saveLv(){
+  const empId=document.getElementById('lv-emp').value;if(!empId){alert('اختر الموظف');return;}
+  db.leaves.push({id:uid(),empId,type:document.getElementById('lv-type').value,from:document.getElementById('lv-from').value,to:document.getElementById('lv-to').value,status:document.getElementById('lv-stat').value,notes:document.getElementById('lv-note').value});
+  save();renderLv();renderDash();closeM('m-leave');ntf('✅ تم إضافة طلب الإجازة');
 }
-function approveLeave(id){const l=db.leaves.find(x=>x.id===id);if(l){l.status='موافق';save();renderLeave();renderDash();notify('✅ تمت الموافقة على الإجازة');}}
-function rejectLeave(id){const l=db.leaves.find(x=>x.id===id);if(l){l.status='مرفوض';save();renderLeave();renderDash();notify('تم رفض الإجازة');}}
+function updLv(id,st){const l=db.leaves.find(x=>x.id===id);if(l){l.status=st;save();renderLv();renderDash();ntf(st==='موافق'?'✅ تمت الموافقة':'تم الرفض');}}
 
 function renderAtt(){
   const w=document.getElementById('att-wrap');
   if(!db.attendance.length){w.innerHTML='<div class="empty">لا يوجد سجل تأخيرات.</div>';return;}
-  const bstyle=s=>{const map={'خصم مطبق':'bd','تحذير كتابي':'bw','تحذير شفهي':'bg','تسامح':'bg'};return map[s]||'bg';};
-  w.innerHTML=`<div style="overflow-x:auto"><table><tr><th>الموظف</th><th>التاريخ</th><th>وقت الحضور</th><th>التأخير</th><th>الخصم</th><th>الإجراء</th><th></th></tr>`
-    +[...db.attendance].reverse().map(a=>`<tr><td><div class="flex-c"><div class="av">${av(empName(a.empId))}</div>${empName(a.empId)}</div></td><td>${a.date}</td><td>${a.time||'—'}</td><td>${a.mins} دقيقة</td><td style="color:var(--danger-text)">${+a.deduct>0?fmt(a.deduct)+' ر':'—'}</td><td><span class="badge ${bstyle(a.action)}">${a.action}</span></td><td><button class="btn sm danger" onclick="delItem('attendance','${a.id}')">🗑</button></td></tr>`).join('')+'</table></div>';
+  w.innerHTML='<div style="overflow-x:auto"><table><tr><th>الموظف</th><th>التاريخ</th><th>وقت الحضور</th><th>التأخير</th><th>الخصم</th><th>الإجراء</th><th></th></tr>'+
+    [...db.attendance].reverse().map(a=>'<tr><td><div class="fc"><div class="av">'+av(en(a.empId))+'</div>'+en(a.empId)+'</div></td><td>'+a.date+'</td><td>'+(a.time||'—')+'</td><td>'+a.mins+' دقيقة</td><td style="color:#f87171">'+(+a.deduct>0?fmt(a.deduct)+' ر':'—')+'</td><td>'+bdg(a.action)+'</td><td><button class="btn sm red" onclick="delIt(\'attendance\',\''+a.id+'\')">🗑</button></td></tr>').join('')+
+    '</table></div>';
 }
 function saveAtt(){
   const empId=document.getElementById('att-emp').value;if(!empId){alert('اختر الموظف');return;}
-  db.attendance.push({id:uid(),empId,date:document.getElementById('att-date').value,time:document.getElementById('att-time').value,mins:document.getElementById('att-mins').value,action:document.getElementById('att-action').value,deduct:document.getElementById('att-deduct').value});
-  save();renderAtt();renderDash();renderSalaries();closeModal('att-modal');notify('✅ تم تسجيل التأخير');
+  db.attendance.push({id:uid(),empId,date:document.getElementById('att-dt').value,time:document.getElementById('att-tm').value,mins:document.getElementById('att-min').value,action:document.getElementById('att-act').value,deduct:document.getElementById('att-ded').value});
+  save();renderAtt();renderDash();renderSal();closeM('m-att');ntf('✅ تم تسجيل التأخير');
 }
 
-function delItem(col,id){if(!confirm('حذف هذا السجل؟'))return;db[col]=db[col].filter(x=>x.id!==id);save();renderAll();notify('تم الحذف');}
+function delIt(col,id){if(!confirm('حذف هذا السجل؟'))return;if(!db[col])db[col]=[];db[col]=db[col].filter(x=>x.id!==id);save();renderAll();ntf('تم الحذف');}
 
 function saveSettings(){
-  db.settings.company=document.getElementById('set-company').value||'شركتي';
-  db.settings.leaveDays=+document.getElementById('set-leave').value||21;
-  db.settings.iqamaWarn=+document.getElementById('set-warn').value||60;
-  db.settings.lateRate=+document.getElementById('set-rate').value||50;
-  save();applySettings();renderDash();notify('✅ تم حفظ الإعدادات');
+  db.settings.company=document.getElementById('set-co').value;
+  db.settings.leaveDays=+document.getElementById('set-lv').value||21;
+  db.settings.iqamaWarn=+document.getElementById('set-wn').value||60;
+  db.settings.lateRate=+document.getElementById('set-rt').value||50;
+  save();renderDash();ntf('✅ تم حفظ الإعدادات');
 }
-function clearAll(){db={employees:[],iqama:[],documents:[],deductions:[],bonuses:[],traffic:[],leaves:[],attendance:[],settings:{company:'شركتي',leaveDays:21,iqamaWarn:60,lateRate:50}};localStorage.removeItem(KEY);renderAll();applySettings();notify('تم مسح جميع البيانات');}
+function clearAll(){db={employees:[],iqama:[],documents:[],deductions:[],bonuses:[],traffic:[],leaves:[],attendance:[],loans:[],settings:{company:'شركة كيان وبناء للمقاولات',leaveDays:21,iqamaWarn:60,lateRate:50}};localStorage.removeItem(KEY);renderAll();ntf('تم مسح جميع البيانات');}
 
+// Print receipt
+function printRec(empId,m,y){
+  const now=new Date();
+  const mn=m!==undefined?m:now.getMonth();
+  const yr=y!==undefined?y:now.getFullYear();
+  const r=getSal(empId,mn,yr);if(!r){alert('لا يوجد بيانات');return;}
+  const e=r.e;
+  const ds=now.toLocaleDateString('ar-SA',{year:'numeric',month:'long',day:'numeric'});
+  const html='<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet"><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Cairo,Arial,sans-serif;background:#f5f0e8;display:flex;justify-content:center;padding:20px}.r{width:680px;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.15)}.hd{background:linear-gradient(135deg,#1a1200,#3d2d00);color:#f5c842;padding:18px 22px;display:flex;align-items:center;gap:14px}.ico{font-size:36px}.hi{flex:1;text-align:center}.hi h1{font-size:17px;margin-bottom:3px}.hi p{font-size:10px;opacity:.7}.hn{font-size:10px;opacity:.7;text-align:left}.rb{background:#f5c842;color:#1a1200;text-align:center;padding:7px;font-size:13px;font-weight:700}.bd{padding:20px}.ib{display:grid;grid-template-columns:1fr 1fr;gap:10px;background:#faf5e8;border:1px solid #e8d5a0;border-radius:7px;padding:14px;margin-bottom:18px}.ir .lb{font-size:10px;color:#888;margin-bottom:2px}.ir .vl{font-size:12px;font-weight:700;color:#1a1200}table{width:100%;border-collapse:collapse;margin-bottom:20px}th{background:#1a1200;color:#f5c842;padding:8px 12px;font-size:11px;text-align:right}td{padding:8px 12px;font-size:12px;border-bottom:1px solid #f0e8d0}.tot td{background:#faf5e8;font-weight:700;font-size:14px;color:#1a1200}.sg{display:grid;grid-template-columns:1fr 1fr;gap:50px;padding-top:18px;border-top:1px dashed #ccc}.sb{text-align:center}.sl{height:45px;border-bottom:1px solid #333;margin-bottom:5px}.slb{font-size:10px;color:#666}.ft{background:#faf5e8;padding:8px;text-align:center;font-size:10px;color:#999;border-top:1px solid #e8d5a0}</style></head><body onload="window.print()"><div class="r"><div class="hd"><div class="ico">🏗️</div><div class="hi"><h1>شركة كيان وبناء للمقاولات</h1><p>إيصال استلام راتب</p></div><div class="hn">رقم: '+Math.floor(Math.random()*9000+1000)+'<br>'+ds+'</div></div><div class="rb">إيصال راتب شهر '+MN[mn]+' '+yr+'</div><div class="bd"><div class="ib"><div class="ir"><div class="lb">اسم الموظف</div><div class="vl">'+e.name+'</div></div><div class="ir"><div class="lb">المسمى الوظيفي</div><div class="vl">'+(e.title||'—')+'</div></div><div class="ir"><div class="lb">القسم</div><div class="vl">'+(e.dept||'—')+'</div></div><div class="ir"><div class="lb">رقم الهوية</div><div class="vl">'+(e.idno||'—')+'</div></div><div class="ir"><div class="lb">رقم التأمينات</div><div class="vl">'+(e.insurance||'—')+'</div></div><div class="ir"><div class="lb">طريقة الصرف</div><div class="vl">'+(e.pay==='bank'?'تحويل بنكي: '+(e.bank||'—'):'كاش')+'</div></div></div><table><tr><th>البيان</th><th>المبلغ (ريال)</th></tr><tr><td>الراتب الأساسي</td><td>'+fmt(e.salary)+'</td></tr><tr><td>بدل السكن</td><td>'+fmt(e.housing)+'</td></tr><tr><td>بدل النقل</td><td>'+fmt(e.transport)+'</td></tr><tr><td style="color:#c0392b">الخصومات والجزاءات</td><td style="color:#c0392b">( '+fmt(r.ded)+' )</td></tr><tr><td style="color:#27ae60">المكافآت والحوافز</td><td style="color:#27ae60">'+fmt(r.bon)+'</td></tr><tr class="tot"><td>✅ صافي الراتب المستحق</td><td style="font-size:16px;color:#b8860b">'+fmt(r.net)+' ريال</td></tr></table><div class="sg"><div class="sb"><div class="sl"></div><div class="slb">توقيع الموظف — أقر باستلام المبلغ كاملاً</div></div><div class="sb"><div class="sl"></div><div class="slb">توقيع المسؤول المالي</div></div></div></div><div class="ft">شركة كيان وبناء للمقاولات — وثيقة رسمية معتمدة</div></div></body></html>';
+  const w=window.open('','_blank','width=750,height=680');w.document.write(html);w.document.close();
+}
+
+// Print salary report
+function printSalReport(){
+  const m=parseInt(document.getElementById('sm').value);
+  const y=parseInt(document.getElementById('sy').value);
+  const rows=db.employees.filter(e=>e.status==='نشط').map(e=>getSal(e.id,m,y)).filter(Boolean);
+  const tN=rows.reduce((a,r)=>a+r.net,0),tD=rows.reduce((a,r)=>a+r.ded,0),tB=rows.reduce((a,r)=>a+r.bon,0);
+  const ds=new Date().toLocaleDateString('ar-SA',{year:'numeric',month:'long',day:'numeric'});
+  const html='<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet"><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Cairo,Arial,sans-serif;padding:20px;background:#f5f0e8}.w{max-width:900px;margin:0 auto;background:#fff;border-radius:10px;overflow:hidden}.hd{background:linear-gradient(135deg,#1a1200,#3d2d00);color:#f5c842;padding:18px 22px;display:flex;align-items:center;gap:14px}.ico{font-size:32px}.hi{flex:1;text-align:center}.hi h1{font-size:17px}.hi p{font-size:10px;opacity:.7;margin-top:3px}.bd{padding:18px}table{width:100%;border-collapse:collapse;margin-top:14px}th{background:#1a1200;color:#f5c842;padding:8px 11px;font-size:11px;text-align:right}td{padding:8px 11px;font-size:12px;border-bottom:1px solid #f0e8d0}.tot{background:#faf5e8;font-weight:700}.ft{background:#faf5e8;padding:8px;text-align:center;font-size:10px;color:#999;margin-top:14px;border-top:1px solid #e8d5a0}</style></head><body onload="window.print()"><div class="w"><div class="hd"><div class="ico">🏗️</div><div class="hi"><h1>شركة كيان وبناء للمقاولات</h1><p>كشف رواتب شهر '+MN[m]+' '+y+' — تاريخ الطباعة: '+ds+'</p></div></div><div class="bd"><table><tr><th>#</th><th>الموظف</th><th>القسم</th><th>الراتب</th><th>الخصومات</th><th>المكافآت</th><th>الصافي</th><th>طريقة الصرف</th></tr>'+rows.map((r,i)=>'<tr><td>'+(i+1)+'</td><td>'+r.e.name+'</td><td>'+(r.e.dept||'—')+'</td><td>'+fmt(r.gross)+'</td><td style="color:#c0392b">'+(r.ded>0?'('+fmt(r.ded)+')':'—')+'</td><td style="color:#27ae60">'+(r.bon>0?fmt(r.bon):'—')+'</td><td style="font-weight:700">'+fmt(r.net)+'</td><td>'+(r.e.pay==='bank'?'🏦 تحويل بنكي':'💵 كاش')+'</td></tr>').join('')+'<tr class="tot"><td colspan="3">الإجمالي</td><td></td><td style="color:#c0392b">('+fmt(tD)+')</td><td style="color:#27ae60">'+fmt(tB)+'</td><td style="color:#b8860b;font-size:14px">'+fmt(tN)+' ريال</td><td></td></tr></table></div><div class="ft">شركة كيان وبناء للمقاولات — وثيقة سرية للاستخدام الداخلي</div></div></body></html>';
+  const w=window.open('','_blank','width=950,height=700');w.document.write(html);w.document.close();
+}
+function printRep(){
+  document.getElementById('sm').value=document.getElementById('rm').value;
+  document.getElementById('sy').value=document.getElementById('ry').value;
+  printSalReport();
+}
+
+// Import insurance PDF
+function importInsurance(input){
+  const file=input.files[0];if(!file)return;
+  const modal=document.createElement('div');
+  modal.id='ins-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);z-index:300;display:flex;align-items:center;justify-content:center;padding:1rem';
+  modal.innerHTML='<div style="background:rgba(10,5,30,0.98);border:1px solid rgba(255,255,255,.15);border-radius:18px;padding:1.5rem;width:480px;max-width:95vw;color:#fff"><div style="font-size:14px;font-weight:700;color:var(--gold);margin-bottom:1rem">📥 استيراد موظف من التأمينات</div><div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:1rem">أدخل بيانات الموظف من ملف التأمينات</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px"><div class="fg"><label>اسم الموظف *</label><input id="ins-name" placeholder="الاسم الكامل"></div><div class="fg"><label>رقم الهوية</label><input id="ins-id"></div><div class="fg"><label>رقم التأمينات</label><input id="ins-ins"></div><div class="fg"><label>الجنسية</label><input id="ins-nat"></div><div class="fg"><label>المسمى الوظيفي</label><input id="ins-title"></div><div class="fg"><label>الراتب الأساسي</label><input id="ins-sal" type="number" min="0"></div></div><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" onclick="document.getElementById(\'ins-modal\').remove()">إلغاء</button><button class="btn gold" onclick="doInsImport()">✓ إضافة الموظف</button></div></div>';
+  document.body.appendChild(modal);
+  input.value='';
+}
+function doInsImport(){
+  const name=document.getElementById('ins-name').value;
+  if(!name.trim()){alert('أدخل اسم الموظف');return;}
+  db.employees.push({id:uid(),name,idno:document.getElementById('ins-id').value,insurance:document.getElementById('ins-ins').value,nat:document.getElementById('ins-nat').value,title:document.getElementById('ins-title').value,salary:document.getElementById('ins-sal').value,housing:'0',transport:'0',pay:'cash',status:'نشط',hire:td()});
+  save();renderAll();document.getElementById('ins-modal').remove();ntf('✅ تم إضافة الموظف');
+}
+
+// Scan iqama image
+function scanIqama(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    const src=ev.target.result;
+    const empsOpts=db.employees.map(e=>'<option value="'+e.id+'">'+e.name+'</option>').join('');
+    const modal=document.createElement('div');
+    modal.id='iq-scan-modal';
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);z-index:300;display:flex;align-items:center;justify-content:center;padding:1rem;overflow-y:auto';
+    modal.innerHTML='<div style="background:rgba(10,5,30,0.98);border:1px solid rgba(255,255,255,.15);border-radius:18px;width:700px;max-width:95vw;overflow:hidden;margin:auto"><div style="background:rgba(245,200,66,0.1);padding:1.1rem 1.25rem;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:center"><span style="font-size:14px;font-weight:700;color:var(--gold)">📷 مسح صورة الإقامة</span><button class="btn sm red" onclick="document.getElementById(\'iq-scan-modal\').remove()">✕</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:0"><div style="padding:1.1rem;border-left:1px solid rgba(255,255,255,.07)"><img src="'+src+'" style="width:100%;border-radius:8px;border:1px solid rgba(255,255,255,.1);max-height:280px;object-fit:contain;background:rgba(0,0,0,.3)"/><div style="margin-top:8px;padding:8px 10px;background:rgba(96,165,250,0.1);border-radius:8px;font-size:11px;color:#60a5fa">💡 ابحث في الصورة وأدخل البيانات يدوياً</div></div><div style="padding:1.1rem;display:flex;flex-direction:column;gap:9px"><div class="fg"><label>الموظف</label><select id="scan-emp"><option value="_new">➕ إضافة موظف جديد</option>'+empsOpts+'</select></div><div id="scan-new" style="display:none;flex-direction:column;gap:7px;padding:9px;background:rgba(245,200,66,0.05);border:1px solid rgba(245,200,66,0.2);border-radius:8px"><div style="font-size:11px;color:var(--gold);font-weight:700;margin-bottom:3px">بيانات الموظف الجديد</div><input id="scan-name" placeholder="اسم الموظف *" style="padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r);background:rgba(255,255,255,.07);color:#fff;font-family:Cairo,sans-serif"><input id="scan-nat" placeholder="الجنسية" style="padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r);background:rgba(255,255,255,.07);color:#fff;font-family:Cairo,sans-serif"><input id="scan-job" placeholder="المسمى الوظيفي" style="padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r);background:rgba(255,255,255,.07);color:#fff;font-family:Cairo,sans-serif"></div><div class="fg"><label>رقم الإقامة</label><input id="scan-no" placeholder="من الصورة" style="padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r);background:rgba(255,255,255,.07);color:#fff;font-family:Cairo,sans-serif"></div><div class="fg"><label>رقم الهوية</label><input id="scan-idno" placeholder="من الصورة" style="padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r);background:rgba(255,255,255,.07);color:#fff;font-family:Cairo,sans-serif"></div><div class="fg"><label>تاريخ الإصدار</label><input id="scan-iss" type="date" style="padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r);background:rgba(255,255,255,.07);color:#fff;font-family:Cairo,sans-serif"></div><div class="fg"><label>تاريخ الانتهاء</label><input id="scan-exp" type="date" style="padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r);background:rgba(255,255,255,.07);color:#fff;font-family:Cairo,sans-serif"></div></div></div><div style="padding:.9rem 1.25rem;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid rgba(255,255,255,.07)"><button class="btn" onclick="document.getElementById(\'iq-scan-modal\').remove()">إلغاء</button><button class="btn gold" onclick="saveScanIq()">✓ حفظ الإقامة</button></div></div>';
+    document.body.appendChild(modal);
+    document.getElementById('scan-emp').addEventListener('change',function(){
+      document.getElementById('scan-new').style.display=this.value==='_new'?'flex':'none';
+    });
+  };
+  reader.readAsDataURL(file);
+  input.value='';
+}
+function saveScanIq(){
+  const sel=document.getElementById('scan-emp').value;
+  let empId=sel;
+  if(sel==='_new'){
+    const name=document.getElementById('scan-name').value;
+    if(!name.trim()){alert('أدخل اسم الموظف');return;}
+    const ne={id:uid(),name,nat:document.getElementById('scan-nat').value,idno:document.getElementById('scan-idno').value,title:document.getElementById('scan-job').value,salary:'0',housing:'0',transport:'0',pay:'cash',status:'نشط',hire:td()};
+    db.employees.push(ne);empId=ne.id;
+  }
+  if(!empId){alert('اختر موظفاً');return;}
+  const idno=document.getElementById('scan-idno').value;
+  if(idno){const e=db.employees.find(x=>x.id===empId);if(e&&!e.idno)e.idno=idno;}
+  db.iqama.push({id:uid(),empId,no:document.getElementById('scan-no').value,issue:document.getElementById('scan-iss').value,expiry:document.getElementById('scan-exp').value,cost:'',notes:'مُضاف من صورة الإقامة'});
+  save();renderAll();document.getElementById('iq-scan-modal').remove();ntf('✅ تم حفظ الإقامة!');
+}
+
+// Import attendance PDF
+function importAttendance(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    const src=ev.target.result;
+    const isImg=file.type.startsWith('image/');
+    const empsOpts=db.employees.filter(e=>e.status!=='منتهي').map(e=>'<option value="'+e.id+'">'+e.name+'</option>').join('');
+    const modal=document.createElement('div');
+    modal.id='att-pdf-modal';
+    modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);z-index:300;display:flex;align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto';
+    modal.innerHTML='<div style="background:rgba(10,5,30,0.98);border:1px solid rgba(255,255,255,.15);border-radius:18px;width:820px;max-width:95vw;overflow:hidden;margin:auto"><div style="background:rgba(245,200,66,0.1);padding:1.1rem 1.25rem;border-bottom:1px solid rgba(255,255,255,.08);display:flex;justify-content:space-between;align-items:center"><span style="font-size:14px;font-weight:700;color:var(--gold)">📄 استيراد بيانات الحضور وحساب الراتب</span><button class="btn sm red" onclick="document.getElementById(\'att-pdf-modal\').remove()">✕</button></div><div style="display:grid;grid-template-columns:1fr 1fr"><div style="padding:1.1rem;border-left:1px solid rgba(255,255,255,.07);max-height:75vh;overflow-y:auto">'+(isImg?'<img src="'+src+'" style="width:100%;border-radius:8px;border:1px solid rgba(255,255,255,.1)"/>':'<div style="padding:2rem;background:rgba(255,255,255,.04);border-radius:8px;text-align:center;color:rgba(255,255,255,.4)">📄 '+file.name+'<br><span style="font-size:11px">راجع الملف وأدخل البيانات يدوياً</span></div>')+'</div><div style="padding:1.1rem;display:flex;flex-direction:column;gap:9px"><div class="fg"><label>الموظف</label><select id="ap-emp" style="padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r);background:rgba(255,255,255,.07);color:#fff;font-family:Cairo,sans-serif">'+empsOpts+'</select></div><div class="fg"><label>الشهر</label><select id="ap-mn" style="padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r);background:rgba(255,255,255,.07);color:#fff;font-family:Cairo,sans-serif"><option value="0">يناير</option><option value="1">فبراير</option><option value="2">مارس</option><option value="3">أبريل</option><option value="4">مايو</option><option value="5">يونيو</option><option value="6">يوليو</option><option value="7">أغسطس</option><option value="8">سبتمبر</option><option value="9">أكتوبر</option><option value="10">نوفمبر</option><option value="11">ديسمبر</option></select></div><div class="fg"><label>السنة</label><select id="ap-yr" style="padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r);background:rgba(255,255,255,.07);color:#fff;font-family:Cairo,sans-serif"><option>2024</option><option>2025</option><option selected>2026</option><option>2027</option></select></div><div class="fg"><label>أيام العمل في الشهر</label><input id="ap-wd" type="number" value="26" min="1" max="31" style="padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r);background:rgba(255,255,255,.07);color:#fff;font-family:Cairo,sans-serif"></div><div class="fg"><label>عدد أيام الغياب</label><input id="ap-ab" type="number" value="0" min="0" style="padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r);background:rgba(255,255,255,.07);color:#fff;font-family:Cairo,sans-serif" oninput="calcAP()"></div><div class="fg"><label>تواريخ الغياب (مثال: 5، 12، 20)</label><input id="ap-dates" placeholder="اختياري" style="padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r);background:rgba(255,255,255,.07);color:#fff;font-family:Cairo,sans-serif"></div><div class="fg"><label>إجمالي دقائق التأخير</label><input id="ap-lm" type="number" value="0" min="0" style="padding:7px 10px;font-size:12px;border:1px solid rgba(255,255,255,.12);border-radius:var(--r);background:rgba(255,255,255,.07);color:#fff;font-family:Cairo,sans-serif" oninput="calcAP()"></div><div id="ap-result" style="background:rgba(245,200,66,0.07);border:1px solid rgba(245,200,66,0.2);border-radius:9px;padding:11px;display:none;font-size:12px"></div><button class="btn blu" style="width:100%;justify-content:center" onclick="calcAP()">🔢 احسب الراتب</button><button class="btn gold" style="width:100%;justify-content:center" onclick="saveAP()">✓ حفظ وتطبيق</button></div></div></div>';
+    document.body.appendChild(modal);
+    document.getElementById('ap-mn').value=new Date().getMonth();
+    calcAP();
+  };
+  reader.readAsDataURL(file);
+  input.value='';
+}
+
+function calcAP(){
+  const empId=document.getElementById('ap-emp')?.value;if(!empId)return;
+  const emp=db.employees.find(e=>e.id===empId);if(!emp)return;
+  const wd=parseInt(document.getElementById('ap-wd').value)||26;
+  const ab=parseInt(document.getElementById('ap-ab').value)||0;
+  const lm=parseInt(document.getElementById('ap-lm').value)||0;
+  const gross=(+emp.salary||0)+(+emp.housing||0)+(+emp.transport||0);
+  const dayR=gross/wd;
+  const abDed=Math.round(dayR*ab);
+  const lateR=db.settings.lateRate||50;
+  const lateDed=Math.round((lm/60)*lateR);
+  const net=gross-abDed-lateDed;
+  const res=document.getElementById('ap-result');
+  res.style.display='block';
+  res.innerHTML='<div style="font-weight:700;color:var(--gold);margin-bottom:7px">نتيجة الحساب</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px">'+
+    '<span style="color:rgba(255,255,255,.5)">الإجمالي</span><span style="font-weight:600">'+fmt(gross)+' ر</span>'+
+    '<span style="color:rgba(255,255,255,.5)">معدل اليوم</span><span>'+fmt(Math.round(dayR))+' ر</span>'+
+    '<span style="color:#f87171">خصم غياب ('+ab+' يوم)</span><span style="color:#f87171">- '+fmt(abDed)+' ر</span>'+
+    '<span style="color:#f87171">خصم تأخير ('+lm+' دق)</span><span style="color:#f87171">- '+fmt(lateDed)+' ر</span>'+
+    '<span style="color:var(--gold);font-weight:700;font-size:13px">✅ صافي الراتب</span><span style="color:var(--gold);font-weight:700;font-size:13px">'+fmt(net)+' ر</span>'+
+    '</div>';
+}
+
+function saveAP(){
+  const empId=document.getElementById('ap-emp')?.value;if(!empId){alert('اختر الموظف');return;}
+  const emp=db.employees.find(e=>e.id===empId);if(!emp)return;
+  const mn=parseInt(document.getElementById('ap-mn').value);
+  const yr=parseInt(document.getElementById('ap-yr').value);
+  const wd=parseInt(document.getElementById('ap-wd').value)||26;
+  const ab=parseInt(document.getElementById('ap-ab').value)||0;
+  const lm=parseInt(document.getElementById('ap-lm').value)||0;
+  const dates=document.getElementById('ap-dates').value;
+  const gross=(+emp.salary||0)+(+emp.housing||0)+(+emp.transport||0);
+  const abDed=Math.round((gross/wd)*ab);
+  const lateDed=Math.round((lm/60)*(db.settings.lateRate||50));
+  const ds=yr+'-'+String(mn+1).padStart(2,'0')+'-15';
+  if(ab>0)db.deductions.push({id:uid(),empId,type:'غياب',date:ds,amount:String(abDed),reason:'غياب '+ab+' يوم — '+MN[mn]+' '+yr+(dates?' ('+dates+')':'')});
+  if(lm>0)db.attendance.push({id:uid(),empId,date:ds,time:'',mins:String(lm),action:'خصم مطبق',deduct:String(lateDed)});
+  save();renderAll();document.getElementById('att-pdf-modal').remove();
+  ntf('✅ تم تسجيل بيانات '+emp.name);
+}
+
+// ── LOANS ──
+function calcLoan(){
+  const amt=parseFloat(document.getElementById('ln-amt').value)||0;
+  const inst=parseInt(document.getElementById('ln-inst').value)||1;
+  const monthly=Math.ceil(amt/inst);
+  document.getElementById('ln-monthly').value=monthly>0?fmt(monthly)+' ريال':'';
+  const prev=document.getElementById('ln-preview');
+  if(amt>0){
+    prev.style.display='block';
+    prev.innerHTML='<div style="color:var(--gold);font-weight:700;margin-bottom:6px">ملخص السلفة</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:12px">'+
+      '<span style="color:rgba(255,255,255,.5)">إجمالي السلفة</span><span>'+fmt(amt)+' ريال</span>'+
+      '<span style="color:rgba(255,255,255,.5)">عدد الأقساط</span><span>'+inst+' شهر</span>'+
+      '<span style="color:rgba(255,255,255,.5)">القسط الشهري</span><span style="color:var(--gold);font-weight:700">'+fmt(monthly)+' ريال</span>'+
+      '</div>';
+  } else { prev.style.display='none'; }
+}
+
+function saveLoan(){
+  const empId=document.getElementById('ln-emp').value;if(!empId){alert('اختر الموظف');return;}
+  const amt=parseFloat(document.getElementById('ln-amt').value)||0;if(amt<=0){alert('أدخل مبلغ السلفة');return;}
+  const inst=parseInt(document.getElementById('ln-inst').value)||1;
+  const monthly=Math.ceil(amt/inst);
+  const loan={id:uid(),empId,amount:amt,date:document.getElementById('ln-dt').value,installments:inst,monthlyAmt:monthly,paid:0,reason:document.getElementById('ln-rsn').value,status:'نشطة'};
+  if(!db.loans)db.loans=[];
+  db.loans.push(loan);
+  save();renderLoans();closeM('m-loan');ntf('✅ تم إضافة السلفة');
+}
+
+function payInstallment(loanId){
+  const loan=db.loans.find(x=>x.id===loanId);if(!loan)return;
+  if(loan.paid>=loan.installments){ntf('السلفة مسددة بالكامل');return;}
+  loan.paid+=1;
+  if(loan.paid>=loan.installments)loan.status='مسددة';
+  // Add deduction for this month
+  const now=new Date();
+  const ds=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  db.deductions.push({id:uid(),empId:loan.empId,type:'قسط سلفة',date:ds,amount:String(loan.monthlyAmt),reason:'قسط سلفة ('+(loan.paid)+'/'+loan.installments+')'});
+  save();renderLoans();renderDed();renderSal();renderRep();ntf('✅ تم خصم القسط '+loan.paid+'/'+loan.installments);
+}
+
+function renderLoans(){
+  if(!db.loans)db.loans=[];
+  const w=document.getElementById('loan-wrap');
+  const sw=document.getElementById('loan-summary');
+  if(!db.loans.length){
+    w.innerHTML='<div class="empty">لا يوجد سلف مسجلة.</div>';
+    sw.innerHTML='<div class="empty">لا يوجد سلف نشطة.</div>';
+    return;
+  }
+  const active=db.loans.filter(l=>l.status==='نشطة');
+  const totActive=active.reduce((a,l)=>a+(l.amount-(l.paid*l.monthlyAmt)),0);
+  let rows='';
+  [...db.loans].reverse().forEach(function(l){
+    const remaining=Math.max(0,l.amount-(l.paid*l.monthlyAmt));
+    const stCls=l.status==='مسددة'?'bs':'bw';
+    rows+='<tr>';
+    rows+='<td><div class="fc"><div class="av">'+av(en(l.empId))+'</div>'+en(l.empId)+'</div></td>';
+    rows+='<td style="color:var(--gold);font-weight:700">'+fmt(l.amount)+' ر</td>';
+    rows+='<td>'+l.paid+'/'+l.installments+'</td>';
+    rows+='<td style="color:#34d399">'+fmt(l.paid*l.monthlyAmt)+' ر</td>';
+    rows+='<td style="color:#f87171">'+fmt(remaining)+' ر</td>';
+    rows+='<td style="font-weight:700">'+fmt(l.monthlyAmt)+' ر</td>';
+    rows+='<td><span class="badge '+stCls+'">'+l.status+'</span></td>';
+    rows+='<td style="color:rgba(255,255,255,.5)">'+(l.reason||'—')+'</td>';
+    rows+='<td><div class="fc">';
+    if(l.status==='نشطة'){
+      rows+='<button class="btn sm gold" data-lid="'+l.id+'" onclick="payInstallment(this.dataset.lid)">💳 خصم قسط</button>';
+    }
+    rows+='<button class="btn sm red" data-lid="'+l.id+'" onclick="delLoan(this.dataset.lid)">🗑</button>';
+    rows+='</div></td></tr>';
+  });
+  w.innerHTML='<div style="overflow-x:auto"><table><tr><th>الموظف</th><th>المبلغ</th><th>الأقساط</th><th>المدفوع</th><th>المتبقي</th><th>القسط الشهري</th><th>الحالة</th><th>السبب</th><th></th></tr>'+rows+'</table></div>';
+  if(active.length){
+    sw.innerHTML='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">'+
+      '<div class="metric"><div class="metric-lbl">سلف نشطة</div><div class="metric-val" style="color:#fbbf24">'+active.length+'</div><div class="metric-sub">موظف</div></div>'+
+      '<div class="metric"><div class="metric-lbl">إجمالي المتبقي</div><div class="metric-val" style="color:#f87171">'+fmt(Math.round(totActive))+'</div><div class="metric-sub">ريال</div></div>'+
+      '<div class="metric"><div class="metric-lbl">أقساط هذا الشهر</div><div class="metric-val" style="color:var(--gold)">'+fmt(active.reduce(function(a,l){return a+l.monthlyAmt;},0))+'</div><div class="metric-sub">ريال</div></div>'+
+      '</div>';
+  } else {
+    sw.innerHTML='<div class="empty">لا يوجد سلف نشطة ✅</div>';
+  }
+}
+
+
+// ── DOCUMENT PDF UPLOAD ──
+function uploadDoc(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    const today=new Date().toISOString().split('T')[0];
+    // Detect type
+    let type='أخرى';
+    const name=file.name.toLowerCase();
+    if(name.includes('عقد')||name.includes('contract'))type='عقود';
+    else if(name.includes('رخص')||name.includes('license'))type='تراخيص';
+    else if(name.includes('تأمين')||name.includes('insurance'))type='تأمين';
+    else if(name.includes('مالي')||name.includes('finance'))type='مالي';
+    else if(name.includes('سجل')||name.includes('register'))type='رسمي';
+    // Store file data
+    const docObj={id:uid(),name:file.name.replace(/\.[^.]+$/,''),type,upload:today,expiry:'',notes:'مرفوع: '+file.name,fileData:ev.target.result,fileName:file.name,fileType:file.type};
+    db.documents.push(docObj);
+    save();renderDoc();ntf('✅ تم رفع الملف: '+file.name);
+  };
+  reader.readAsDataURL(file);
+  input.value='';
+}
+
+
+function downloadDoc(id){
+  const d=db.documents.find(x=>x.id===id);
+  if(!d||!d.fileData){ntf('لا يوجد ملف مرفق');return;}
+  const a=document.createElement('a');
+  a.href=d.fileData;
+  a.download=d.fileName||d.name;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  ntf('⬇️ جاري التحميل...');
+}
+
+function delDoc(id){delIt('documents',id);}
+function delLoan(id){delIt('loans',id);}
 // Init
-document.getElementById('today-lbl').textContent=new Date().toLocaleDateString('ar-SA',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-document.getElementById('sal-month').value=new Date().getMonth();
+document.getElementById('datelbl').textContent=new Date().toLocaleDateString('ar-SA',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+document.getElementById('sm').value=new Date().getMonth();
+document.getElementById('rm').value=new Date().getMonth();
+document.getElementById('tbtn').style.right='calc(var(--sw) - 12px)';
 load();
 </script>
 </body>

@@ -1386,6 +1386,7 @@ function renderLoans(){
 // ── DOCUMENT PDF UPLOAD ──
 function uploadDoc(input){
   const file=input.files[0];if(!file)return;
+  if(file.size > 5*1024*1024){ ntf('⚠️ حجم الملف كبير — الحد الأقصى 5MB'); input.value=''; return; }
   const reader=new FileReader();
   reader.onload=function(ev){
     const today=new Date().toISOString().split('T')[0];
@@ -1409,7 +1410,10 @@ function uploadDoc(input){
 
 function downloadDoc(id){
   const d=db.documents.find(x=>x.id===id);
-  if(!d||!d.fileData){ntf('لا يوجد ملف مرفق');return;}
+  if(!d||!d.fileData){
+    ntf('⚠️ الملف محفوظ محلياً فقط — افتح من نفس الجهاز اللي رفعته منه');
+    return;
+  }
   const a=document.createElement('a');
   a.href=d.fileData;
   a.download=d.fileName||d.name;
